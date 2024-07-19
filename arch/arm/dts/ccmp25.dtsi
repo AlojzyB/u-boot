@@ -193,6 +193,11 @@
 	status = "okay";
 };
 
+&bsec {
+	hwid: hwid@5c {
+		reg = <0x5c 0xc>;
+	};
+};
 
 &crc {
 	status = "okay";
