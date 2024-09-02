@@ -170,7 +170,7 @@ static int stm32_usb2phy_regulators_enable(struct phy *phy)
 	return 0;
 
 vdd33_disable:
-	regulator_set_enable(phy_dev->vdd33, false);
+	regulator_set_enable_if_allowed(phy_dev->vdd33, false);
 
 	return ret;
 }
