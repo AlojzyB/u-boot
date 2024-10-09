@@ -254,9 +254,9 @@ build_imxboot()
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.23_2.0.0"
-# Tag: lf-6.6.23-2.0.0
-MKIMAGE_REV="ca5d6b2d3fd9ab15825b97f7ef6f1ce9a8644966"
+MKIMAGE_BRANCH="lf-6.6.36_2.1.0"
+# Tag: lf-6.6.36-2.1.0
+MKIMAGE_REV="4622115cbc037f79039c4522faeced4aabea986b"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX91"
 MKIMAGE_PATCHES=" \
@@ -265,27 +265,27 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10"
-# Tag: lf-6.6.23-2.0.0
-ATF_REV="49143a1701d9ccd3239e3f95f3042897ca889ea8"
+# Tag: lf-6.6.36-2.1.0
+ATF_REV="28affcae957cb8194917b5246276630f9e6343e1"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-ccimx91-use-UART6-for-the-default-console.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.6.23_2.0.0"
-# Tag: lf-6.6.23-2.0.0
-OPTEE_REV="c6be5b572452a2808d1a34588fd10e71715e23cf"
+OPTEE_BRANCH="lf-6.6.36_2.1.0"
+# Tag: lf-6.6.36-2.1.0
+OPTEE_REV="612bc5a642a4608d282abeee2349d86de996d7ee"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0001-core-imx-support-ccimx91-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.24-fbe0a4c"
+FIRMWARE_IMX="firmware-imx-8.25-27879f8"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-0.1.2-4ed450a"
+FIRMWARE_ELE="firmware-ele-imx-0.1.3-4b30ee5"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
