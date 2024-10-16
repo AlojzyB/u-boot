@@ -30,6 +30,7 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
 	ccimx91-dvk             all               aarch64       "make_imxboot_ccimx91.sh"
+	ccimx93-dvk             all               aarch64       "make_imxboot_ccimx93.sh"
 _EOF_
 
 # Set default values if not provided by Jenkins
