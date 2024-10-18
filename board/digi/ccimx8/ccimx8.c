@@ -25,8 +25,6 @@
 #include "ccimx8.h"
 
 #ifdef CONFIG_CC8X
-extern const char *get_imx8_rev(u32 rev);
-extern const char *get_imx8_type(u32 imxtype);
 extern struct ccimx8_variant ccimx8x_variants[];
 #endif
 static struct digi_hwid my_hwid;
@@ -149,11 +147,14 @@ void som_default_environment(void)
 
 	/* Set soc_type variable (lowercase) */
 #ifdef CONFIG_CC8X
-	snprintf(var, sizeof(var), "imx8%s", get_imx8_type(get_cpu_type()));
-	for (i = 0; i < strlen(var); i++)
-		var[i] = tolower(var[i]);
+	if (is_soc_rev(CHIP_REV_B))
+		env_set("soc_rev", "B0");
+	else if(is_soc_rev(CHIP_REV_C))
+		env_set("soc_rev", "C0");
 	somtype = 'x';
 #else
+	somtype = 'm';
+#endif
 	switch (get_cpu_type()) {
 		case MXC_CPU_IMX8MN:
 		case MXC_CPU_IMX8MND:
@@ -171,21 +172,23 @@ void som_default_environment(void)
 		case MXC_CPU_IMX8MMSL:
 			snprintf(var, sizeof(var), "imx8mm");
 			break;
+		case MXC_CPU_IMX8QXP_A0:
+		case MXC_CPU_IMX8QXP:
+			snprintf(var, sizeof(var), "imx8qxp");
+			break;
+		case MXC_CPU_IMX8DX:
+		case MXC_CPU_IMX8DXL:
+			snprintf(var, sizeof(var), "imx8dx");
+			break;
 		default:
-			snprintf(var, sizeof(var), "imx%s", get_imx_type(get_cpu_type()));
+			snprintf(var, sizeof(var), "imx%s", "??");
 	}
-	somtype = 'm';
 	for (i = 0; i < strlen(var) && var[i] != ' '; i++)
 		var[i] = tolower(var[i]);
 	/* Terminate string on first white space (if any) */
 	var[i] = 0;
-#endif
-	env_set("soc_type", var);
 
-#ifdef CONFIG_CC8X
-	snprintf(var, sizeof(var), "%s0", get_imx8_rev(get_cpu_rev() & 0xFFF));
-	env_set("soc_rev", var);
-#endif
+	env_set("soc_type", var);
 
 #ifdef CONFIG_CMD_MMC
 	/* Set $mmcbootdev to MMC boot device index */

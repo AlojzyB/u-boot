@@ -16,7 +16,7 @@
 #include <linux/sizes.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch-imx/cpu.h>
-#include <asm/arch-imx8/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/global_data.h>
 #include <stdlib.h>
@@ -32,8 +32,6 @@
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
-
-extern const char *get_imx8_rev(u32 rev);
 
 int confirm_close(void);
 
@@ -488,7 +486,7 @@ bool validate_bootloader_image(void *loadaddr)
 		break;
 	}
 
-	soc_rev = get_imx8_rev(get_cpu_rev() & 0xFFF);
+	soc_rev = is_soc_rev(CHIP_REV_C) ? "C" : "B";
 
 	if (*soc_rev != seco_rev) {
 		if (seco_rev == '!')
@@ -508,7 +506,7 @@ bool validate_bootloader_image(void *loadaddr)
 
 __weak void fdt_fixup_soc_revision(void *fdt)
 {
-	const char *rev = get_imx8_rev(get_cpu_rev() & 0xFFF);
+	const char *rev = is_soc_rev(CHIP_REV_C) ? "C" : "B";
 
 	do_fixup_by_path(fdt, "/cpus/", "rev", rev, strlen(rev) + 1, 1);
 }
