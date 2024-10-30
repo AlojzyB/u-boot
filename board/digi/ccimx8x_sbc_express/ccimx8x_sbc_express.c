@@ -12,17 +12,18 @@
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
 #include <asm/arch/iomux.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
-#include "../../freescale/common/tcpc.h"
-#include <bootm.h>
 #include <linux/delay.h>
+#include "../../freescale/common/tcpc.h"
 
 #include "../ccimx8/ccimx8.h"
 #include "../common/carrier_board.h"
 #include "../common/helper.h"
+#include "../common/mca_registers.h"
+#include "../common/mca.h"
 #include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -76,6 +77,14 @@ static iomux_cfg_t const ext_gpios_pads[] = {
 static void setup_iomux_uart(void)
 {
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
+}
+
+int board_early_init_r(void)
+{
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
+	setup_caam();
+#endif
+	return 0;
 }
 
 int board_early_init_f(void)
@@ -256,7 +265,7 @@ int board_init(void)
 	return 0;
 }
 
-void board_quiesce_devices()
+void board_quiesce_devices(void)
 {
 	const char *power_on_devices[] = {
 		"dma_lpuart2",
