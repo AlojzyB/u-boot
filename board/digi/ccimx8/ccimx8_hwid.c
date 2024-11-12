@@ -483,7 +483,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%llu", ram_sizes_mb[hwid->ram]);
+			sprintf(str, "%llu", hwid_get_ramsize(hwid)/SZ_1M);
 		else if (capabilities &&
 			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
 			   hwid->mca) ||
