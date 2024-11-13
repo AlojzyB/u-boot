@@ -20,7 +20,7 @@
 #include "../ccimx8x/hwid_cc8x.h"
 #elif defined(CONFIG_CC8M)
 #include "../ccimx8m/hwid_cc8m.h"
-#elif defined(CONFIG_CC93)
+#elif defined(CONFIG_CC9)
 #include "../ccimx9/hwid_ccimx9.h"
 #endif
 
