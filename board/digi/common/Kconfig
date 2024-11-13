@@ -201,6 +201,6 @@ config REDUNDANT_BOOTLOADER
 
 config FIT_CFGS_PREFIX
 	string
-	default "conf-digi_"
+	default "conf-"
 	help
 	  Prefix for the names of the configurations in the FIT image.
