@@ -181,7 +181,7 @@ config ENV_ENCRYPT
 config CAAM_ENV_ENCRYPT
 	bool
 	depends on ENV_ENCRYPT
-	depends on HAS_CAAM && !TARGET_CCIMX93_DVK
+	depends on HAS_CAAM && !CC9
 	default ENV_ENCRYPT
 	help
 	  Encrypt U-Boot environment using CAAM
@@ -189,7 +189,7 @@ config CAAM_ENV_ENCRYPT
 config OPTEE_ENV_ENCRYPT
 	bool
 	depends on ENV_ENCRYPT
-	depends on TARGET_CCIMX93_DVK
+	depends on CC9
 	default ENV_ENCRYPT
 	help
 	  Encrypt U-Boot environment using Optee
