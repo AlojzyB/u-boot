@@ -219,24 +219,37 @@ void hwid_get_macs(uint32_t pool, uint32_t base)
 	}
 }
 
-void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial)
+void hwid_get_serial_number(const struct digi_hwid *hwid)
 {
 	char cmd[CONFIG_SYS_CBSIZE] = "";
-	int family_id = 0, ret;
+	int ret;
 
 	/* If year is not set avoid setting this variable */
-	if (year == 0)
+	if (hwid->year == 0)
 		return;
 
 #ifdef CONFIG_DIGI_FAMILY_ID
-	family_id = CONFIG_DIGI_FAMILY_ID;
+	int week_month = hwid->week;
+#ifdef CONFIG_CC8X
+	/* If the week is not defined, print the month */
+	if (!hwid->week)
+		week_month = hwid->month;
 #endif
-
+	/* New format with Family ID*/
 	sprintf(cmd, "setenv -f serial# %02d%02d%02d%06d",
-		year,
-		week,
-		family_id,
-		serial);
+		hwid->year,
+		week_month,
+		CONFIG_DIGI_FAMILY_ID,
+		hwid->sn);
+#else
+	/* Old format with Generator ID + Location */
+	sprintf(cmd, "setenv -f serial# %c%02d%02d%02d%06d",
+		hwid->location + 'A',
+		hwid->year,
+		hwid->week,
+		hwid->genid,
+		hwid->sn);
+#endif
 	ret = run_command(cmd, 0);
 	if (ret)
 		printf("ERROR setting 'serial#' from fuses (%d)\n", ret);
