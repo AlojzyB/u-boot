@@ -465,6 +465,9 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
+	/* Get serial number from fuses */
+	hwid_get_serial_number(&my_hwid);
+
 	/* Set $hwid_n variables */
 	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);

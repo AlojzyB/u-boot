@@ -240,7 +240,7 @@ void som_default_environment(void)
 		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
 
 	/* Get serial number from fuses */
-	hwid_get_serial_number(my_hwid.year, my_hwid.week, my_hwid.sn);
+	hwid_get_serial_number(&my_hwid);
 
 	/* Set 'som_overlays' variable */
 	var[0] = 0;
