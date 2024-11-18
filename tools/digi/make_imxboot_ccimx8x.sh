@@ -174,14 +174,15 @@ build_imxboot()
 			echo "- Build imx-boot binary for: ${SOC} (${rev})"
 			${MAKE} SOC="${SOC}" REV="${rev}" clean
 			${MAKE} SOC="${SOC}" REV="${rev}" flash_spl
-			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8x-sbc-pro-${rev}.bin
-			cp --remove-destination "${SOC}"/mkimage-flash_spl.log "${OUTPUT_PATH}"/mkimage-ccimx8x-sbc-pro-${rev}-flash_spl.log
+			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_spl.log "${OUTPUT_PATH}"/mkimage-ccimx8x-sbc-${SBC}-${rev}-flash_spl.log
 		done
 	)
 }
 
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPTNAME="$(basename "${0}")"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
 MKIMAGE_BRANCH="lf-6.6.36_2.1.0"
@@ -211,6 +212,8 @@ ATF_PLAT="imx8qx"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+SBC="pro"
+echo "${SCRIPTNAME}" | grep -qs express && SBC="express"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do

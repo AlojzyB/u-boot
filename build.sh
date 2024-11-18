@@ -29,6 +29,8 @@ while read -r pl mt tt ps; do
 	eval "${pl//-/_}_toolchain_type=\"${tt}\""
 	eval "${pl//-/_}_post_script=\"${ps}\""
 done<<-_EOF_
+	ccimx8x_sbc_express     all               aarch64       "make_imxboot_ccimx8x_express.sh"
+	ccimx8x_sbc_pro         all               aarch64       "make_imxboot_ccimx8x.sh"
 	ccimx91-dvk             all               aarch64       "make_imxboot_ccimx91.sh"
 	ccimx93-dvk             all               aarch64       "make_imxboot_ccimx93.sh"
 _EOF_
