@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright : STMicroelectronics 2019
+ * Copyright : STMicroelectronics 2023
  */
 
 / {
@@ -31,99 +31,99 @@
 
 	firmware {
 		optee {
-			u-boot,dm-pre-reloc;
+			bootph-all;
+		};
+
+		scmi {
+			bootph-all;
 		};
 	};
 
 	/* need PSCI for sysreset during board_f */
 	psci {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 
 	soc@0 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };
 
 &bsec {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioa {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpiob {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioc {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpiod {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioe {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpiof {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpiog {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioh {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioi {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioj {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpiok {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &gpioz {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 /* pre-reloc probe = reserve video frame buffer in video_reserve() */
 &ltdc {
 	clocks = <&rcc CK_BUS_LTDC>, <&rcc CK_KER_LTDC>;
 	clock-names = "bus", "lcd";
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &pinctrl {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &rcc {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &rifsc {
-	u-boot,dm-pre-reloc;
-};
-
-&scmi {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &scmi_clk {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &syscfg {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };

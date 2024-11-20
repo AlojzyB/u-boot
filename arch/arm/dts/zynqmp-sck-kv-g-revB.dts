@@ -4,7 +4,7 @@
  *
  * (C) Copyright 2020 - 2021, Xilinx, Inc.
  *
- * Michal Simek <michal.simek@xilinx.com>
+ * Michal Simek <michal.simek@amd.com>
  */
 
 #include <dt-bindings/gpio/gpio.h>
@@ -16,9 +16,11 @@
 /plugin/;
 
 &{/} {
-	compatible = "xlnx,zynqmp-sk-kv260-rev1",
+	compatible = "xlnx,zynqmp-sk-kv260-rev2",
+		     "xlnx,zynqmp-sk-kv260-rev1",
 		     "xlnx,zynqmp-sk-kv260-revB",
 		     "xlnx,zynqmp-sk-kv260", "xlnx,zynqmp";
+	model = "ZynqMP KV260 revB";
 };
 
 &i2c1 { /* I2C_SCK C23/C24 - MIO from SOM */
@@ -27,8 +29,8 @@
 	pinctrl-names = "default", "gpio";
 	pinctrl-0 = <&pinctrl_i2c1_default>;
 	pinctrl-1 = <&pinctrl_i2c1_gpio>;
-	scl-gpios = <&gpio 24 GPIO_ACTIVE_HIGH>;
-	sda-gpios = <&gpio 25 GPIO_ACTIVE_HIGH>;
+	scl-gpios = <&gpio 24 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpio 25 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 
 	u14: ina260@40 { /* u14 */
 		compatible = "ti,ina260";
@@ -145,12 +147,13 @@
 	bus-width = <8>;
 };
 
-&gem3 { /* required by spec */
+&gem3 {
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gem3_default>;
 	phy-handle = <&phy0>;
 	phy-mode = "rgmii-id";
+	assigned-clock-rates = <250000000>;
 
 	mdio: mdio {
 		#address-cells = <1>;
@@ -171,7 +174,7 @@
 	};
 };
 
-&pinctrl0 { /* required by spec */
+&pinctrl0 {
 	status = "okay";
 
 	pinctrl_uart1_default: uart1-default {

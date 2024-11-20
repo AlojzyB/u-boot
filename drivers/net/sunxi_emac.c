@@ -164,9 +164,7 @@ struct emac_eth_dev {
 	struct mii_dev *bus;
 	struct phy_device *phydev;
 	int link_printed;
-#ifdef CONFIG_DM_ETH
 	uchar rx_buf[EMAC_RX_BUFSIZE];
-#endif
 };
 
 struct emac_rxhdr {
@@ -250,10 +248,10 @@ static int emac_mdio_write(struct mii_dev *bus, int addr, int devad, int reg,
 
 static int sunxi_emac_init_phy(struct emac_eth_dev *priv, void *dev)
 {
-	int ret, mask = 0xffffffff;
+	int ret, mask = -1;
 
 #ifdef CONFIG_PHY_ADDR
-	mask = 1 << CONFIG_PHY_ADDR;
+	mask = CONFIG_PHY_ADDR;
 #endif
 
 	priv->bus = mdio_alloc();
@@ -271,11 +269,10 @@ static int sunxi_emac_init_phy(struct emac_eth_dev *priv, void *dev)
 	if (ret)
 		return ret;
 
-	priv->phydev = phy_find_by_mask(priv->bus, mask);
+	priv->phydev = phy_connect(priv->bus, mask, dev, PHY_INTERFACE_MODE_MII);
 	if (!priv->phydev)
 		return -ENODEV;
 
-	phy_connect_dev(priv->phydev, dev, PHY_INTERFACE_MODE_MII);
 	phy_config(priv->phydev);
 
 	return 0;

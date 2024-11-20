@@ -79,7 +79,7 @@ static int do_stm32prog(struct cmd_tbl *cmdtp, int flag, int argc,
 		}
 	}
 
-	if (IS_ENABLED(CONFIG_DM_VIDEO))
+	if (IS_ENABLED(CONFIG_VIDEO))
 		enable_vidconsole();
 
 	data = (struct stm32prog_data *)malloc(sizeof(*data));
@@ -150,11 +150,11 @@ static int do_stm32prog(struct cmd_tbl *cmdtp, int flag, int argc,
 		/* Try bootm for legacy and FIT format image */
 		if (genimg_get_format(uimage) != IMAGE_FORMAT_INVALID)
 			do_bootm(cmdtp, 0, 4, bootm_argv);
-		else if (CONFIG_IS_ENABLED(CMD_BOOTZ))
+		else if (IS_ENABLED(CONFIG_CMD_BOOTZ))
 			do_bootz(cmdtp, 0, 4, bootm_argv);
 	}
 	if (data->script)
-		image_source_script(data->script, "script@stm32prog");
+		cmd_source_script(data->script, NULL, NULL);
 
 	if (reset) {
 		puts("Reset...\n");

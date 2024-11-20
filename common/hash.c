@@ -326,8 +326,8 @@ static struct hash_algo hash_algo[] = {
 };
 
 /* Try to minimize code size for boards that don't want much hashing */
-#if CONFIG_IS_ENABLED(SHA256) || CONFIG_IS_ENABLED(CMD_SHA1SUM) || \
-	CONFIG_IS_ENABLED(CRC32_VERIFY) || CONFIG_IS_ENABLED(CMD_HASH) || \
+#if CONFIG_IS_ENABLED(SHA256) || IS_ENABLED(CONFIG_CMD_SHA1SUM) || \
+	CONFIG_IS_ENABLED(CRC32_VERIFY) || IS_ENABLED(CONFIG_CMD_HASH) || \
 	CONFIG_IS_ENABLED(SHA384) || CONFIG_IS_ENABLED(SHA512)
 #define multi_hash()	1
 #else
@@ -586,6 +586,8 @@ int hash_command(const char *algo_name, int flags, struct cmd_tbl *cmdtp,
 
 		output = memalign(ARCH_DMA_MINALIGN,
 				  sizeof(uint32_t) * HASH_MAX_DIGEST_SIZE);
+		if (!output)
+			return CMD_RET_FAILURE;
 
 		buf = map_sysmem(addr, len);
 		algo->hash_func_ws(buf, len, output, algo->chunk_size);
@@ -602,6 +604,7 @@ int hash_command(const char *algo_name, int flags, struct cmd_tbl *cmdtp,
 					flags & HASH_FLAG_ENV)) {
 				printf("ERROR: %s does not contain a valid "
 					"%s sum\n", *argv, algo->name);
+				free(output);
 				return 1;
 			}
 			if (memcmp(output, vsum, algo->digest_size) != 0) {
@@ -612,6 +615,7 @@ int hash_command(const char *algo_name, int flags, struct cmd_tbl *cmdtp,
 				for (i = 0; i < algo->digest_size; i++)
 					printf("%02x", vsum[i]);
 				puts(" ** ERROR **\n");
+				free(output);
 				return 1;
 			}
 		} else {
@@ -622,9 +626,9 @@ int hash_command(const char *algo_name, int flags, struct cmd_tbl *cmdtp,
 				store_result(algo, output, *argv,
 					flags & HASH_FLAG_ENV);
 			}
-		unmap_sysmem(output);
-
 		}
+
+		free(output);
 
 	/* Horrible code size hack for boards that just want crc32 */
 	} else {

@@ -746,5 +746,4 @@ static int fwu_boottime_checks(void *ctx, struct event *event)
 
 	return 0;
 }
-
 EVENT_SPY(EVT_MAIN_LOOP, fwu_boottime_checks);

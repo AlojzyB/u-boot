@@ -24,7 +24,7 @@ config TARGET_CCMP25_DVK
 
 endchoice
 
-config SYS_TEXT_BASE
+config TEXT_BASE
 	default 0x84000000
 
 config PRE_CON_BUF_ADDR

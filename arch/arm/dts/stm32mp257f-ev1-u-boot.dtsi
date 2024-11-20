@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) STMicroelectronics 2021 - All Rights Reserved
+ * Copyright (C) STMicroelectronics 2023 - All Rights Reserved
  */
 
 #include "stm32mp25-u-boot.dtsi"
@@ -13,6 +13,7 @@
 	config {
 		u-boot,boot-led = "led-blue";
 		u-boot,mmc-env-partition = "u-boot-env";
+		st,stm32prog-gpios = <&gpioc 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	};
 
 	fwu-mdata {
@@ -67,20 +68,21 @@
 	};
 };
 
+
 &i2c_rpmsg {
-	/delete-node/ typec@35;
+       /delete-node/ typec@35;
 };
 
 &usart2 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &usart2_pins_a {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins1 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 	pins2 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };

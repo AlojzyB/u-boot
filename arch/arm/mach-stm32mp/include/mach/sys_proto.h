@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 /*
- * Copyright (C) 2015-2017, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2015-2024, STMicroelectronics - All Rights Reserved
  */
 
 /* ID = Device Version (bit31:16) + Device Part Number (RPN) (bit15:0) */
@@ -30,7 +30,7 @@
 #define CPU_STM32MP131Fxx	0x05010EC8
 #define CPU_STM32MP131Dxx	0x05010EC9
 
-/* ID for STM32MP25x = Device Part Number (RPN) (bit31:0) */
+/* ID for STM32MP2xx = Device Part Number (RPN) (bit31:0) */
 #define CPU_STM32MP257Cxx       0x00002000
 #define CPU_STM32MP255Cxx       0x00082000
 #define CPU_STM32MP253Cxx       0x000B300C
@@ -48,11 +48,39 @@
 #define CPU_STM32MP253Dxx       0xC00B3E0C
 #define CPU_STM32MP251Dxx       0xC00B3E6D
 
+/* ID for STM32MP23x = Device Part Number (RPN) (bit31:0) */
+#define CPU_STM32MP235Cxx       0x00082182
+#define CPU_STM32MP233Cxx       0x000B318E
+#define CPU_STM32MP231Cxx       0x000B31EF
+#define CPU_STM32MP235Axx       0x40082F82
+#define CPU_STM32MP233Axx       0x400B3F8E
+#define CPU_STM32MP231Axx       0x400B3FEF
+#define CPU_STM32MP235Fxx       0x80082182
+#define CPU_STM32MP233Fxx       0x800B318E
+#define CPU_STM32MP231Fxx       0x800B31EF
+#define CPU_STM32MP235Dxx       0xC0082F82
+#define CPU_STM32MP233Dxx       0xC00B3F8E
+#define CPU_STM32MP231Dxx       0xC00B3FEF
+
+#define CPU_STM32MP211Axx	0x40073E7D
+#define CPU_STM32MP211Cxx	0x0007307D
+#define CPU_STM32MP211Dxx	0xC0073E7D
+#define CPU_STM32MP211Fxx	0x8007307D
+#define CPU_STM32MP213Axx	0x40073E1D
+#define CPU_STM32MP213Cxx	0x0007301D
+#define CPU_STM32MP213Dxx	0xC0073E1D
+#define CPU_STM32MP213Fxx	0x8007301D
+#define CPU_STM32MP215Axx	0x40033E0D
+#define CPU_STM32MP215Cxx	0x0003300D
+#define CPU_STM32MP215Dxx	0xC0033E0D
+#define CPU_STM32MP215Fxx	0x8003300D
+
 /* return CPU_STMP32MP...Xxx constants */
 u32 get_cpu_type(void);
 
 #define CPU_DEV_STM32MP15	0x500
 #define CPU_DEV_STM32MP13	0x501
+#define CPU_DEV_STM32MP21	0x503
 #define CPU_DEV_STM32MP25	0x505
 
 /* return CPU_DEV constants */
@@ -89,10 +117,22 @@ u32 get_cpu_package(void);
 
 /* package used for STM32MP25x */
 #define STM32MP25_PKG_CUSTOM		0
-#define STM32MP25_PKG_AL_TBGA361	3
-#define STM32MP25_PKG_AK_TBGA424	4
-#define STM32MP25_PKG_AI_TBGA436	5
+#define STM32MP25_PKG_AL_VFBGA361	1
+#define STM32MP25_PKG_AK_VFBGA424	3
+#define STM32MP25_PKG_AI_TFBGA436	5
 #define STM32MP25_PKG_UNKNOWN		7
+
+#define STM32MP23_PKG_CUSTOM		0
+#define STM32MP23_PKG_AL_VFBGA361	1
+#define STM32MP23_PKG_AK_VFBGA424	3
+#define STM32MP23_PKG_AJ_TFBGA361	7
+
+/* package used for STM32MP21x */
+#define STM32MP21_PKG_CUSTOM		0
+#define STM32MP21_PKG_AL_VFBGA361	1
+#define STM32MP21_PKG_AN_VFBGA273	3
+#define STM32MP21_PKG_AO_VFBGA225	4
+#define STM32MP21_PKG_AM_TFBGA289	5
 
 /* Get SOC name */
 #define SOC_NAME_SIZE 20
@@ -100,6 +140,9 @@ void get_soc_name(char name[SOC_NAME_SIZE]);
 
 /* return boot mode */
 u32 get_bootmode(void);
+
+/* return auth status and partition */
+u32 get_bootauth(void);
 
 int get_eth_nb(void);
 int setup_mac_address(void);
@@ -113,6 +156,9 @@ void stm32mp_misc_init(void);
 
 /* helper function: read data from OTP */
 u32 get_otp(int index, int shift, int mask);
+
+uintptr_t get_stm32mp_rom_api_table(void);
+uintptr_t get_stm32mp_bl2_dtb(void);
 
 /* helper function: check "closed" state in product "Life Cycle" */
 #ifdef CONFIG_CMD_STM32KEY

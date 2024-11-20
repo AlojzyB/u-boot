@@ -72,26 +72,29 @@ static int spl_romapi_load_image_seekable(struct spl_image_info *spl_image,
 	int ret;
 	u32 offset;
 	u32 pagesize, size;
-	struct image_header *header;
+	struct legacy_img_hdr *header;
 	u32 image_offset;
 
 	ret = rom_api_query_boot_infor(QUERY_IVT_OFF, &offset);
-	ret |= rom_api_query_boot_infor(QUERY_PAGE_SZ, &pagesize);
-	ret |= rom_api_query_boot_infor(QUERY_IMG_OFF, &image_offset);
+	if (ret != ROM_API_OKAY)
+		goto err;
 
-	if (ret != ROM_API_OKAY) {
-		puts("ROMAPI: Failure query boot infor pagesize/offset\n");
-		return -1;
-	}
+	ret = rom_api_query_boot_infor(QUERY_PAGE_SZ, &pagesize);
+	if (ret != ROM_API_OKAY)
+		goto err;
 
-	header = (struct image_header *)(CONFIG_SPL_IMX_ROMAPI_LOADADDR);
+	ret = rom_api_query_boot_infor(QUERY_IMG_OFF, &image_offset);
+	if (ret != ROM_API_OKAY)
+		goto err;
+
+	header = (struct legacy_img_hdr *)(CONFIG_SPL_IMX_ROMAPI_LOADADDR);
 
 	printf("image offset 0x%x, pagesize 0x%x, ivt offset 0x%x\n",
 	       image_offset, pagesize, offset);
 
 	offset = spl_romapi_get_uboot_base(image_offset, rom_bt_dev);
 
-	size = ALIGN(sizeof(struct image_header), pagesize);
+	size = ALIGN(sizeof(struct legacy_img_hdr), pagesize);
 	ret = rom_api_download_image((u8 *)header, offset, size);
 
 	if (ret != ROM_API_OKAY) {
@@ -124,6 +127,10 @@ static int spl_romapi_load_image_seekable(struct spl_image_info *spl_image,
 	}
 
 	return 0;
+
+err:
+	puts("ROMAPI: Failure query boot infor pagesize/offset\n");
+	return -1;
 }
 
 static ulong spl_ram_load_read(struct spl_load_info *load, ulong sector,
@@ -341,17 +348,40 @@ int board_return_to_bootrom(struct spl_image_info *spl_image,
 			    struct spl_boot_device *bootdev)
 {
 	int ret;
-	u32 boot;
+	u32 boot, bstage;
 
 	ret = rom_api_query_boot_infor(QUERY_BT_DEV, &boot);
+	if (ret != ROM_API_OKAY)
+		goto err;
 
-	if (ret != ROM_API_OKAY) {
-		puts("ROMAPI: failure at query_boot_info\n");
-		return -1;
+	ret = rom_api_query_boot_infor(QUERY_BT_STAGE, &bstage);
+	if (ret != ROM_API_OKAY)
+		goto err;
+
+	printf("Boot Stage: ");
+
+	switch (bstage) {
+	case BT_STAGE_PRIMARY:
+		printf("Primary boot\n");
+		break;
+	case BT_STAGE_SECONDARY:
+		printf("Secondary boot\n");
+		break;
+	case BT_STAGE_RECOVERY:
+		printf("Recovery boot\n");
+		break;
+	case BT_STAGE_USB:
+		printf("USB boot\n");
+		break;
+	default:
+		printf("Unknown (0x%x)\n", bstage);
 	}
 
 	if (is_boot_from_stream_device(boot))
 		return spl_romapi_load_image_stream(spl_image, bootdev);
 
 	return spl_romapi_load_image_seekable(spl_image, bootdev, boot);
+err:
+	puts("ROMAPI: failure at query_boot_info\n");
+	return -1;
 }

@@ -83,7 +83,7 @@
 #define USB_START_LOW_THRESHOLD_UV	1230000
 #define USB_START_HIGH_THRESHOLD_UV	2150000
 
-#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
+#if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
 struct efi_fw_image fw_images[1];
 
 struct efi_capsule_update_info update_info = {
@@ -124,7 +124,7 @@ int checkboard(void)
 		 fdt_compat && fdt_compat_len ? fdt_compat : "");
 
 	/* display the STMicroelectronics board identification */
-	if (CONFIG_IS_ENABLED(CMD_STBOARD)) {
+	if (IS_ENABLED(CONFIG_CMD_STBOARD)) {
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
 						  DM_DRIVER_GET(stm32mp_bsec),
 						  &dev);
@@ -309,7 +309,7 @@ static void __maybe_unused led_error_blink(u32 nb_blink)
 			for (i = 0; i < 2 * nb_blink; i++) {
 				led_set_state(led, LEDST_TOGGLE);
 				mdelay(125);
-				WATCHDOG_RESET();
+				schedule();
 			}
 			led_set_state(led, LEDST_ON);
 		}
@@ -799,12 +799,17 @@ static void board_stm32mp15x_ev1_init(void)
 	struct driver *drv;
 	struct gpio_desc reset_gpio;
 	char path[40];
+	int ret;
 
 	/* configure IRQ line on EV1 for touchscreen before LCD reset */
-	uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(goodix), &dev);
+	ret = uclass_get_device_by_driver(UCLASS_I2C_GENERIC, DM_DRIVER_GET(goodix), &dev);
+	if (ret)
+		return;
 
 	/* get & set reset gpio for panel */
-	uclass_get_device_by_driver(UCLASS_PANEL, DM_DRIVER_GET(rm68200_panel), &dev);
+	ret = uclass_get_device_by_driver(UCLASS_PANEL, DM_DRIVER_GET(rm68200_panel), &dev);
+	if (ret)
+		return;
 
 	gpio_request_by_name(dev, "reset-gpios", 0, &reset_gpio, GPIOD_IS_OUT);
 
@@ -846,7 +851,7 @@ int board_init(void)
 
 	setup_led(LEDST_ON);
 
-#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
+#if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
 	efi_guid_t image_type_guid = STM32MP_FIP_IMAGE_GUID;
 
 	guidcpy(&fw_images[0].image_type_id, &image_type_guid);
@@ -1067,7 +1072,7 @@ enum env_location env_get_location(enum env_operation op, int prio)
 
 	case BOOT_FLASH_NAND:
 	case BOOT_FLASH_SPINAND:
-		if (CONFIG_IS_ENABLED(ENV_IS_IN_UBI))
+		if (IS_ENABLED(CONFIG_ENV_IS_IN_UBI))
 			return ENVL_UBI;
 		else
 			return ENVL_NOWHERE;
@@ -1108,7 +1113,7 @@ int mmc_get_boot(void)
 		STM32_SDMMC3_BASE
 	};
 
-	if (instance > ARRAY_SIZE(sdmmc_addr))
+	if (instance >= ARRAY_SIZE(sdmmc_addr))
 		return 0;
 
 	/* search associated sdmmc node in devicetree */
@@ -1204,7 +1209,7 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	fdt_copy_fixed_partitions(blob);
 
-	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
+	if (IS_ENABLED(CONFIG_FDT_SIMPLEFB))
 		fdt_simplefb_enable_and_mem_rsv(blob);
 
 	if (board_is_stm32mp15x_dk2())
@@ -1272,22 +1277,25 @@ int fdt_update_fwu_mdata(void *blob)
 		break;
 	case BOOT_FLASH_EMMC:
 		/* sdmmc2 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
+		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
 						"/soc/mmc@58007000");
 		break;
 
 	case BOOT_FLASH_NAND:
 		/* nand@0 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
-						"/soc/etzpc@5c007000/memory-controller@58002000/nand-controller@4,0/nand@0");
+		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
+						"/soc/bus@5c007000/memory-controller@58002000/nand-controller@4,0/nand@0");
 		break;
 
 	case BOOT_FLASH_SPINAND:
 	case BOOT_FLASH_NOR:
 		/* flash0 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
-						"/soc/etzpc@5c007000/spi@58003000/flash@0");
+		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
+						"/soc/bus@5c007000/spi@58003000/flash@0");
 		break;
+	default:
+		/* TF-A firmware update not supported for other boot device */
+		ret = fdt_del_node(blob, nodeoff);
 	}
 
 	return ret;
@@ -1296,7 +1304,8 @@ int fdt_update_fwu_mdata(void *blob)
 int board_fix_fdt(void *blob)
 {
 	int ret = 0;
-	if (CONFIG_IS_ENABLED(FWU_MDATA) && board_is_stm32mp15x_ev1())
+
+	if (CONFIG_IS_ENABLED(FWU_MDATA))
 		ret = fdt_update_fwu_mdata(blob);
 
 	return ret;

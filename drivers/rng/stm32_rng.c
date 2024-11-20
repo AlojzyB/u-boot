@@ -54,7 +54,7 @@
  * @cr:			Entropy source configuration
  * @nscr:		Noice sources control configuration
  * @htcr:		Health tests configuration
- * @has_cond_reset:	True if conditional reset is supported
+ * @has_cond_reset:	True if conditionnal reset is supported
  *
  */
 struct stm32_rng_data {

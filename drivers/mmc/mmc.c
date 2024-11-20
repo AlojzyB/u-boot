@@ -247,7 +247,7 @@ static int mmc_send_cmd_retry(struct mmc *mmc, struct mmc_cmd *cmd,
 static int mmc_send_cmd_quirks(struct mmc *mmc, struct mmc_cmd *cmd,
 			       struct mmc_data *data, u32 quirk, uint retries)
 {
-	if (CONFIG_IS_ENABLED(MMC_QUIRKS) && mmc->quirks & quirk)
+	if (IS_ENABLED(CONFIG_MMC_QUIRKS) && mmc->quirks & quirk)
 		return mmc_send_cmd_retry(mmc, cmd, data, retries);
 	else
 		return mmc_send_cmd(mmc, cmd, data);
@@ -398,6 +398,26 @@ int mmc_send_tuning(struct mmc *mmc, u32 opcode, int *cmd_error)
 }
 #endif
 
+int mmc_send_stop_transmission(struct mmc *mmc, bool write)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
+	cmd.cmdarg = 0;
+	/*
+	 * JEDEC Standard No. 84-B51 Page 126
+	 * CMD12 STOP_TRANSMISSION R1/R1b[3]
+	 * NOTE 3 R1 for read cases and R1b for write cases.
+	 *
+	 * Physical Layer Simplified Specification Version 9.00
+	 * 7.3.1.3 Detailed Command Description
+	 * CMD12 R1b
+	 */
+	cmd.resp_type = (IS_SD(mmc) || write) ? MMC_RSP_R1b : MMC_RSP_R1;
+
+	return mmc_send_cmd(mmc, &cmd, NULL);
+}
+
 static int mmc_read_blocks(struct mmc *mmc, void *dst, lbaint_t start,
 			   lbaint_t blkcnt)
 {
@@ -425,10 +445,7 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, lbaint_t start,
 		return 0;
 
 	if (blkcnt > 1) {
-		cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
-		cmd.cmdarg = 0;
-		cmd.resp_type = MMC_RSP_R1b;
-		if (mmc_send_cmd(mmc, &cmd, NULL)) {
+		if (mmc_send_stop_transmission(mmc, false)) {
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 			pr_err("mmc fail to send stop cmd\n");
 #endif
@@ -2223,6 +2240,7 @@ error:
 			mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 				   EXT_CSD_BUS_WIDTH, EXT_CSD_BUS_WIDTH_1);
 			mmc_select_mode(mmc, MMC_LEGACY);
+			mmc_set_clock(mmc, mmc->legacy_speed, MMC_CLK_ENABLE);
 			mmc_set_bus_width(mmc, 1);
 		}
 	}
@@ -2262,7 +2280,7 @@ static int mmc_startup_v4(struct mmc *mmc)
 		return 0;
 
 	if (!mmc->ext_csd)
-		memset(ext_csd_bkup, 0, sizeof(ext_csd_bkup));
+		memset(ext_csd_bkup, 0, MMC_MAX_BLOCK_LEN);
 
 	err = mmc_send_ext_csd(mmc, ext_csd);
 	if (err)
@@ -2431,6 +2449,9 @@ static int mmc_startup_v4(struct mmc *mmc)
 #endif
 
 	mmc->wr_rel_set = ext_csd[EXT_CSD_WR_REL_SET];
+
+	mmc->can_trim =
+		!!(ext_csd[EXT_CSD_SEC_FEATURE] & EXT_CSD_SEC_FEATURE_TRIM_EN);
 
 	return 0;
 error:
@@ -3115,10 +3136,12 @@ int mmc_init_device(int num)
 	}
 
 	m = mmc_get_mmc_dev(dev);
-	m->user_speed_mode = MMC_MODES_END; /* Initialising user set speed mode */
-
 	if (!m)
 		return 0;
+
+	/* Initialising user set speed mode */
+	m->user_speed_mode = MMC_MODES_END;
+
 	if (m->preinit)
 		mmc_start_init(m);
 
@@ -3127,9 +3150,10 @@ int mmc_init_device(int num)
 #endif
 
 #ifdef CONFIG_CMD_BKOPS_ENABLE
-int mmc_set_bkops_enable(struct mmc *mmc)
+int mmc_set_bkops_enable(struct mmc *mmc, bool autobkops, bool enable)
 {
 	int err;
+	u32 bit = autobkops ? BIT(1) : BIT(0);
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 
 	err = mmc_send_ext_csd(mmc, ext_csd);
@@ -3143,18 +3167,21 @@ int mmc_set_bkops_enable(struct mmc *mmc)
 		return -EMEDIUMTYPE;
 	}
 
-	if (ext_csd[EXT_CSD_BKOPS_EN] & 0x1) {
+	if (enable && (ext_csd[EXT_CSD_BKOPS_EN] & bit)) {
 		puts("Background operations already enabled\n");
 		return 0;
 	}
 
-	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_BKOPS_EN, 1);
+	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_BKOPS_EN,
+			 enable ? bit : 0);
 	if (err) {
-		puts("Failed to enable manual background operations\n");
+		printf("Failed to %sable manual background operations\n",
+		       enable ? "en" : "dis");
 		return err;
 	}
 
-	puts("Enabled manual background operations\n");
+	printf("%sabled %s background operations\n",
+	       enable ? "En" : "Dis", autobkops ? "auto" : "manual");
 
 	return 0;
 }

@@ -287,7 +287,7 @@ static int bsec_write_shadow(struct udevice *dev, void __iomem *base, u32 val, u
  * after the function the otp data is not refreshed in shadow
  * Return: 0 if no error
  */
-static int bsec_program_otp(struct udevice *dev,void __iomem *base, u32 val, u32 otp)
+static int bsec_program_otp(struct udevice *dev, void __iomem *base, u32 val, u32 otp)
 {
 	u32 ret;
 	bool power_up = false;

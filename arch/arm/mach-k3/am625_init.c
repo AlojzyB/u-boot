@@ -9,11 +9,20 @@
 #include <spl.h>
 #include <asm/io.h>
 #include <asm/arch/hardware.h>
-#include <asm/arch/sysfw-loader.h>
+#include "sysfw-loader.h"
 #include "common.h"
 #include <dm.h>
 #include <dm/uclass-internal.h>
 #include <dm/pinctrl.h>
+
+#define RTC_BASE_ADDRESS		0x2b1f0000
+#define REG_K3RTC_S_CNT_LSW		(RTC_BASE_ADDRESS + 0x18)
+#define REG_K3RTC_KICK0			(RTC_BASE_ADDRESS + 0x70)
+#define REG_K3RTC_KICK1			(RTC_BASE_ADDRESS + 0x74)
+
+/* Magic values for lock/unlock */
+#define K3RTC_KICK0_UNLOCK_VALUE	0x83e70b13
+#define K3RTC_KICK1_UNLOCK_VALUE	0x95a4f1e0
 
 /*
  * This uninitialized global variable would normal end up in the .bss section,
@@ -26,7 +35,7 @@ static struct rom_extended_boot_data bootdata __section(".data");
 static void store_boot_info_from_rom(void)
 {
 	bootindex = *(u32 *)(CONFIG_SYS_K3_BOOT_PARAM_TABLE_INDEX);
-	memcpy(&bootdata, (uintptr_t *)ROM_ENTENDED_BOOT_DATA_INFO,
+	memcpy(&bootdata, (uintptr_t *)ROM_EXTENDED_BOOT_DATA_INFO,
 	       sizeof(struct rom_extended_boot_data));
 }
 
@@ -71,6 +80,42 @@ static __maybe_unused void enable_mcu_esm_reset(void)
 	writel(stat, CTRLMMR_MCU_RST_CTRL);
 }
 
+#if defined(CONFIG_CPU_V7R)
+
+/*
+ * RTC Erratum i2327 Workaround for Silicon Revision 1
+ *
+ * Due to a bug in initial synchronization out of cold power on,
+ * IRQ status can get locked infinitely if we do not unlock RTC
+ *
+ * This workaround *must* be applied within 1 second of power on,
+ * So, this is closest point to be able to guarantee the max
+ * timing.
+ *
+ * https://www.ti.com/lit/er/sprz487c/sprz487c.pdf
+ */
+void rtc_erratumi2327_init(void)
+{
+	u32 counter;
+
+	/*
+	 * If counter has gone past 1, nothing we can do, leave
+	 * system locked! This is the only way we know if RTC
+	 * can be used for all practical purposes.
+	 */
+	counter = readl(REG_K3RTC_S_CNT_LSW);
+	if (counter > 1)
+		return;
+	/*
+	 * Need to set this up at the very start
+	 * MUST BE DONE under 1 second of boot.
+	 */
+	writel(K3RTC_KICK0_UNLOCK_VALUE, REG_K3RTC_KICK0);
+	writel(K3RTC_KICK1_UNLOCK_VALUE, REG_K3RTC_KICK1);
+	return;
+}
+#endif
+
 void board_init_f(ulong dummy)
 {
 	struct udevice *dev;
@@ -78,6 +123,7 @@ void board_init_f(ulong dummy)
 
 #if defined(CONFIG_CPU_V7R)
 	setup_k3_mpu_regions();
+	rtc_erratumi2327_init();
 #endif
 
 	/*
@@ -168,26 +214,26 @@ void board_init_f(ulong dummy)
 	if (ret)
 		panic("DRAM init failed: %d\n", ret);
 #endif
+	spl_enable_dcache();
 }
 
 u32 spl_mmc_boot_mode(struct mmc *mmc, const u32 boot_device)
 {
 	u32 devstat = readl(CTRLMMR_MAIN_DEVSTAT);
+	u32 bootmode = (devstat & MAIN_DEVSTAT_PRIMARY_BOOTMODE_MASK) >>
+				MAIN_DEVSTAT_PRIMARY_BOOTMODE_SHIFT;
 	u32 bootmode_cfg = (devstat & MAIN_DEVSTAT_PRIMARY_BOOTMODE_CFG_MASK) >>
 			    MAIN_DEVSTAT_PRIMARY_BOOTMODE_CFG_SHIFT;
 
-	switch (boot_device) {
-	case BOOT_DEVICE_MMC1:
-		if ((bootmode_cfg & MAIN_DEVSTAT_PRIMARY_MMC_FS_RAW_MASK) >>
-		     MAIN_DEVSTAT_PRIMARY_MMC_FS_RAW_SHIFT)
-			return MMCSD_MODE_EMMCBOOT;
-		return MMCSD_MODE_FS;
 
-	case BOOT_DEVICE_MMC2:
-		return MMCSD_MODE_FS;
-
+	switch (bootmode) {
+	case BOOT_DEVICE_EMMC:
+		return MMCSD_MODE_EMMCBOOT;
+	case BOOT_DEVICE_MMC:
+		if (bootmode_cfg & MAIN_DEVSTAT_PRIMARY_MMC_FS_RAW_MASK)
+			return MMCSD_MODE_RAW;
 	default:
-		return MMCSD_MODE_RAW;
+		return MMCSD_MODE_FS;
 	}
 }
 

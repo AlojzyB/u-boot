@@ -14,7 +14,7 @@ Development target
 ------------------
 
 The implementation of UEFI in U-Boot strives to reach the requirements described
-in the "Embedded Base Boot Requirements (EBBR) Specification - Release v1.0"
+in the "Embedded Base Boot Requirements (EBBR) Specification - Release v2.1.0"
 [2]. The "Server Base Boot Requirements System Software on ARM Platforms" [3]
 describes a superset of the EBBR specification and may be used as further
 reference.
@@ -357,7 +357,7 @@ bit in OsIndications variable with
 
     => setenv -e -nv -bs -rt -v OsIndications =0x0000000000000004
 
-Since U-boot doesn't currently support SetVariable at runtime, its value
+Since U-Boot doesn't currently support SetVariable at runtime, its value
 won't be taken over across the reboot. If this is the case, you can skip
 this feature check with the Kconfig option (CONFIG_EFI_IGNORE_OSINDICATIONS)
 set.
@@ -413,8 +413,8 @@ is because the FWU feature supports multiple partitions(banks) of
 updatable images, and the actual dfu alt number to which the image is
 to be written to is determined at runtime, based on the value of the
 update bank to which the image is to be written. For more information
-on the FWU Multi Bank Update feature, please refer `doc
-<doc/develop/uefi/fwu_updates.rst>`__.
+on the FWU Multi Bank Update feature, please refer to
+:doc:`/develop/uefi/fwu_updates`.
 
 When using the FMP for FIT images, the image index value needs to be
 set to 1.
@@ -551,6 +551,13 @@ For example, if lowest-supported-version is set to 7 and you run capsule
 update using a capsule file with --fw-version of 5, the update will fail.
 When the --fw-version in the capsule file is updated, lowest-supported-version
 in the dtb might be updated accordingly.
+
+If user needs to enforce anti-rollback to any older version,
+the lowest-supported-version property in dtb must be always updated manually.
+
+Note that the lowest-supported-version property specified in U-Boot's control
+device tree can be changed by U-Boot fdt command.
+Secure systems should not enable this command.
 
 To insert the lowest supported version into a dtb
 
@@ -826,7 +833,7 @@ UEFI block IO driver
 The UEFI block IO driver supports devices exposing the EFI_BLOCK_IO_PROTOCOL.
 
 When connected it creates a new U-Boot block IO device with interface type
-IF_TYPE_EFI_LOADER, adds child controllers mapping the partitions, and installs
+UCLASS_EFI_LOADER, adds child controllers mapping the partitions, and installs
 the EFI_SIMPLE_FILE_SYSTEM_PROTOCOL on these. This can be used together with the
 software iPXE to boot from iSCSI network drives [4].
 
@@ -865,8 +872,8 @@ Links
 -----
 
 * [1] http://uefi.org/specifications - UEFI specifications
-* [2] https://github.com/ARM-software/ebbr/releases/download/v1.0/ebbr-v1.0.pdf -
-  Embedded Base Boot Requirements (EBBR) Specification - Release v1.0
+* [2] https://github.com/ARM-software/ebbr/releases/download/v2.1.0/ebbr-v2.1.0.pdf -
+  Embedded Base Boot Requirements (EBBR) Specification - Release v2.1.0
 * [3] https://developer.arm.com/docs/den0044/latest/server-base-boot-requirements-system-software-on-arm-platforms-version-11 -
   Server Base Boot Requirements System Software on ARM Platforms - Version 1.1
 * [4] :doc:`iscsi`

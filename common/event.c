@@ -27,7 +27,8 @@ const char *const type_name[] = {
 	"test",
 
 	/* Events related to driver model */
-	"dm_post_init",
+	"dm_post_init_f",
+	"dm_post_init_r",
 	"dm_pre_probe",
 	"dm_post_probe",
 	"dm_pre_remove",
@@ -35,6 +36,9 @@ const char *const type_name[] = {
 
 	/* init hooks */
 	"misc_init_f",
+
+	/* Fpga load hook */
+	"fpga_load",
 
 	/* fdt hooks */
 	"ft_fixup",
@@ -123,7 +127,7 @@ int event_notify(enum event_t type, void *data, int size)
 
 	ret = notify_static(&event);
 	if (ret)
-		return log_msg_ret("dyn", ret);
+		return log_msg_ret("sta", ret);
 
 	if (CONFIG_IS_ENABLED(EVENT_DYNAMIC)) {
 		ret = notify_dynamic(&event);
@@ -155,7 +159,7 @@ void event_show_spy_list(void)
 	}
 }
 
-#if CONFIG_IS_ENABLED(NEEDS_MANUAL_RELOC)
+#if IS_ENABLED(CONFIG_NEEDS_MANUAL_RELOC)
 int event_manual_reloc(void)
 {
 	struct evspy_info *spy, *end;

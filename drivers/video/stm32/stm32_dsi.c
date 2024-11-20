@@ -809,7 +809,7 @@ static int stm32_dsi_get_panel(struct udevice *dev, struct udevice **panel)
 {
 	ofnode ep_node, node, ports, remote;
 	u32 remote_phandle;
-	int ret = 0;
+	int ret;
 
 	ports = ofnode_find_subnode(dev_ofnode(dev), "ports");
 	if (!ofnode_valid(ports)) {
@@ -847,14 +847,16 @@ static int stm32_dsi_get_panel(struct udevice *dev, struct udevice **panel)
 
 			uclass_get_device_by_ofnode(UCLASS_PANEL, remote, panel);
 			if (*panel)
-				if (ofnode_valid(dev_ofnode(*panel)))
-					return 0;
+				break;
 		}
 	}
 
 	/* Sanity check, we can get out of the loop without having a clean ofnode */
 	if (!(*panel))
 		ret = -EINVAL;
+	else
+		if (!ofnode_valid(dev_ofnode(*panel)))
+			ret = -EINVAL;
 
 	return ret;
 }
@@ -900,7 +902,8 @@ static int stm32_dsi_attach(struct udevice *dev)
 		return ret;
 	}
 
-	if (priv->hw_version == HWVER_141 && IS_ENABLED(CONFIG_STM32MP25X)) {
+	if (priv->hw_version == HWVER_141 &&
+	    (IS_ENABLED(CONFIG_STM32MP25X) || IS_ENABLED(CONFIG_STM32MP23X))) {
 		ret = dsi_host_init(priv->dsi_host, device, &timings, 4,
 				    &dsi_stm_phy_141_ops);
 		if (ret) {
@@ -966,8 +969,8 @@ static int stm32_dsi_probe(struct udevice *dev)
 
 	device->dev = dev;
 
-	priv->base = (void *)dev_read_addr(dev);
-	if ((fdt_addr_t)priv->base == FDT_ADDR_T_NONE) {
+	priv->base = dev_read_addr_ptr(dev);
+	if (!priv->base) {
 		dev_err(dev, "dsi dt register address error\n");
 		return -EINVAL;
 	}

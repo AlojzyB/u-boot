@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2023-2024, STMicroelectronics - All Rights Reserved
  */
+
+#define LOG_CATEGORY LOGC_ARCH
+
 #include <common.h>
 #include <clk.h>
 #include <cpu_func.h>
@@ -13,17 +16,16 @@
 #include <asm/io.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/system.h>
 #include <dm/device.h>
 #include <dm/lists.h>
 #include <dm/uclass.h>
-#include <dt-bindings/clock/stm32mp25-clks.h>
-#include <dt-bindings/pinctrl/stm32-pinfunc.h>
 
 /*
  * early TLB into the .data section so that it not get cleared
  * with 16kB alignment
  */
-#define EARLY_TLB_SIZE 0xA000
+#define EARLY_TLB_SIZE 0x10000
 u8 early_tlb[EARLY_TLB_SIZE] __section(".data") __aligned(0x4000);
 
 /*
@@ -35,10 +37,10 @@ static void early_enable_caches(void)
 	if (CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
 		return;
 
-#if !(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
-	gd->arch.tlb_size = EARLY_TLB_SIZE;
-	gd->arch.tlb_addr = (unsigned long)&early_tlb;
-#endif
+	if (!(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))) {
+		gd->arch.tlb_size = EARLY_TLB_SIZE;
+		gd->arch.tlb_addr = (unsigned long)&early_tlb;
+	}
 	/* enable MMU (default configuration) */
 	dcache_enable();
 }
@@ -90,11 +92,35 @@ int print_cpuinfo(void)
 	return 0;
 }
 
+/*
+ * Force data-section, as .bss will not be valid
+ * when save_boot_params is invoked.
+ */
+static uintptr_t nt_fw_dtb __section(".data");
+
+uintptr_t get_stm32mp_bl2_dtb(void)
+{
+	return nt_fw_dtb;
+}
+
+/*
+ * Save the FDT address provided by TF-A in r2 at boot time
+ * This function is called from start.S
+ */
+void save_boot_params(unsigned long r0, unsigned long r1, unsigned long r2,
+		      unsigned long r3)
+{
+	nt_fw_dtb = r2;
+
+	save_boot_params_ret();
+}
+
 u32 get_bootmode(void)
 {
 	/* read bootmode from TAMP backup register */
 	return (readl(TAMP_BOOT_CONTEXT) & TAMP_BOOT_MODE_MASK) >>
 		    TAMP_BOOT_MODE_SHIFT;
+
 }
 
 static void setup_boot_mode(void)
@@ -107,8 +133,10 @@ static void setup_boot_mode(void)
 		STM32_UART5_BASE,
 		STM32_USART6_BASE,
 		STM32_UART7_BASE,
+#ifdef CONFIG_STM32MP25X
 		STM32_UART8_BASE,
 		STM32_UART9_BASE
+#endif
 	};
 	const u32 sdmmc_addr[] = {
 		STM32_SDMMC1_BASE,

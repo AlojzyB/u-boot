@@ -116,7 +116,7 @@ char *env_get(const char *name)
 	if (gd->flags & GD_FLG_ENV_READY) { /* after import into hashtable */
 		struct env_entry e, *ep;
 
-		WATCHDOG_RESET();
+		schedule();
 
 		e.key	= name;
 		e.data	= NULL;
@@ -362,6 +362,7 @@ int env_check_redund(const char *buf1, int buf1_read_fail,
 				tmp_env2->crc;
 
 	if (!crc1_ok && !crc2_ok) {
+		gd->env_valid = ENV_INVALID;
 		return -ENOMSG; /* needed for env_load() */
 	} else if (crc1_ok && !crc2_ok) {
 		gd->env_valid = ENV_VALID;
@@ -548,12 +549,12 @@ void env_import_fdt(void)
 		return;
 	}
 
-	for (res = ofnode_get_first_property(node, &prop);
+	for (res = ofnode_first_property(node, &prop);
 	     !res;
-	     res = ofnode_get_next_property(&prop)) {
+	     res = ofnode_next_property(&prop)) {
 		const char *name, *val;
 
-		val = ofnode_get_property_by_prop(&prop, &name, NULL);
+		val = ofprop_get_property(&prop, &name, NULL);
 		env_set(name, val);
 	}
 }

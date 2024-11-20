@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0+ */
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
  * (C) Copyright 2024
  */

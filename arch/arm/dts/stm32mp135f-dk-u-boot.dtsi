@@ -31,8 +31,7 @@
 		};
 
 		led-blue {
-			label = "heartbeat";
-			gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
+			/delete-property/default-state;
 		};
 	};
 };
@@ -42,15 +41,19 @@
 };
 
 &uart4 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &uart4_pins_a {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins1 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 	pins2 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
+};
+
+&usbotg_hs {
+	u-boot,force-b-session-valid;
 };

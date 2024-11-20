@@ -78,9 +78,6 @@ static enum env_location env_locations[] = {
 #ifdef CONFIG_ENV_IS_IN_REMOTE
 	ENVL_REMOTE,
 #endif
-#ifdef CONFIG_ENV_IS_IN_SATA
-	ENVL_ESATA,
-#endif
 #ifdef CONFIG_ENV_IS_IN_SPI_FLASH
 	ENVL_SPI_FLASH,
 #endif
@@ -195,6 +192,14 @@ int env_load(void)
 	int best_prio = -1;
 	int prio;
 
+	if (CONFIG_IS_ENABLED(ENV_WRITEABLE_LIST)) {
+		/*
+		 * When using a list of writeable variables, the baseline comes
+		 * from the built-in default env. So load this first.
+		 */
+		env_set_default(NULL, 0);
+	}
+
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
 		int ret;
 
@@ -212,9 +217,7 @@ int env_load(void)
 			printf("OK\n");
 			gd->env_load_prio = prio;
 
-#if !CONFIG_IS_ENABLED(ENV_APPEND)
 			return 0;
-#endif
 		} else if (ret == -ENOMSG) {
 			/* Handle "bad CRC" case */
 			if (best_prio == -1)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2019 Xilinx, Inc.
- * Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>
+ * Siva Durga Prasad Paladugu <siva.durga.prasad.paladugu@amd.com>>
  */
 
 #include <common.h>
@@ -602,7 +602,7 @@ static void versal_get_clock_info(void)
 	}
 }
 
-int versal_clock_setup(void)
+static int versal_clock_setup(void)
 {
 	int ret;
 
@@ -657,7 +657,9 @@ static int versal_clk_probe(struct udevice *dev)
 	if (ret < 0)
 		return -EINVAL;
 
-	versal_clock_setup();
+	ret = versal_clock_setup();
+	if (ret < 0)
+		return ret;
 
 	priv->clk = clock;
 
@@ -739,6 +741,7 @@ static struct clk_ops versal_clk_ops = {
 
 static const struct udevice_id versal_clk_ids[] = {
 	{ .compatible = "xlnx,versal-clk" },
+	{ .compatible = "xlnx,versal-net-clk" },
 	{ }
 };
 

@@ -46,7 +46,7 @@ int scmi_to_linux_errno(s32 scmi_code)
 
 	for (n = 0; n < ARRAY_SIZE(scmi_linux_errmap); n++)
 		if (scmi_code == scmi_linux_errmap[n].scmi)
-			return scmi_linux_errmap[1].errno;
+			return scmi_linux_errmap[n].errno;
 
 	return -EPROTO;
 }
@@ -66,7 +66,7 @@ static int scmi_bind_protocols(struct udevice *dev)
 		struct driver *drv = NULL;
 		u32 protocol_id;
 
-		if (!ofnode_is_available(node))
+		if (!ofnode_is_enabled(node))
 			continue;
 
 		if (ofnode_read_u32(node, "reg", &protocol_id))
@@ -75,7 +75,7 @@ static int scmi_bind_protocols(struct udevice *dev)
 		name = ofnode_get_name(node);
 		switch (protocol_id) {
 		case SCMI_PROTOCOL_ID_CLOCK:
-			if (IS_ENABLED(CONFIG_CLK_SCMI))
+			if (CONFIG_IS_ENABLED(CLK_SCMI))
 				drv = DM_DRIVER_GET(scmi_clock);
 			break;
 		case SCMI_PROTOCOL_ID_RESET_DOMAIN:

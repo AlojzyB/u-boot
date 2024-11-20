@@ -253,6 +253,7 @@ static int stm32_copro_start(struct udevice *dev)
 #ifdef CONFIG_STM32MP15X
 		/* Indicates that copro is running */
 		writel(TAMP_COPRO_STATE_CRUN, TAMP_COPRO_STATE);
+
 		/* Store rsc_address in bkp register */
 		writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
 #else

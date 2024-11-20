@@ -405,16 +405,18 @@ int clk_get_by_name(struct udevice *dev, const char *name, struct clk *clk)
 
 int clk_get_by_name_nodev(ofnode node, const char *name, struct clk *clk)
 {
-	int index;
+	int index = 0;
 
 	debug("%s(node=%p, name=%s, clk=%p)\n", __func__,
 		ofnode_get_name(node), name, clk);
 	clk->dev = NULL;
 
-	index = ofnode_stringlist_search(node, "clock-names", name);
-	if (index < 0) {
-		debug("fdt_stringlist_search() failed: %d\n", index);
-		return index;
+	if (name) {
+		index = ofnode_stringlist_search(node, "clock-names", name);
+		if (index < 0) {
+			debug("fdt_stringlist_search() failed: %d\n", index);
+			return index;
+		}
 	}
 
 	return clk_get_by_index_nodev(node, index, clk);
@@ -511,7 +513,7 @@ struct clk *clk_get_parent(struct clk *clk)
 	return pclk;
 }
 
-long long clk_get_parent_rate(struct clk *clk)
+ulong clk_get_parent_rate(struct clk *clk)
 {
 	const struct clk_ops *ops;
 	struct clk *pclk;

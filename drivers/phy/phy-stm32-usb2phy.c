@@ -85,14 +85,15 @@ struct stm32_usb2phy {
 	struct reset_ctl reset;
 	struct udevice *vdd33;
 	struct udevice *vdda18;
+	struct udevice *vbus;
 	uint init;
-	bool internal_vbus_comp;
 	const struct stm32mp2_usb2phy_hw_data *hw_data;
 };
 
 enum stm32_usb2phy_mode {
 	USB2_MODE_HOST_ONLY = 0x1,
 	USB2_MODE_DRD = 0x3,
+	USB2_MODE_OTG,
 };
 
 struct stm32mp2_usb2phy_hw_data {
@@ -100,7 +101,27 @@ struct stm32mp2_usb2phy_hw_data {
 	enum stm32_usb2phy_mode valid_mode;
 };
 
-static const struct stm32mp2_usb2phy_hw_data stm32mp2_usb2phy_hwdata[] = {
+static const struct stm32mp2_usb2phy_hw_data stm32mp21_usb2phy_hwdata[] = {
+	{
+		.cr_offset = PHY1CR_OFFSET,
+		.trim1_offset = PHY1TRIM1_OFFSET,
+		.trim2_offset = PHY1TRIM2_OFFSET,
+		.valid_mode = USB2_MODE_HOST_ONLY,
+		.phyrefsel_mask = 0x7,
+		.phyrefsel_bitpos = 4,
+	},
+	{
+		.cr_offset = PHY2CR_OFFSET,
+		.trim1_offset = PHY2TRIM1_OFFSET,
+		.trim2_offset = PHY2TRIM2_OFFSET,
+		.valid_mode = USB2_MODE_OTG,
+		.phyrefsel_mask = 0x7,
+		.phyrefsel_bitpos = 4,
+	},
+	{ }
+};
+
+static const struct stm32mp2_usb2phy_hw_data stm32mp25_usb2phy_hwdata[] = {
 	{
 		.cr_offset = PHY1CR_OFFSET,
 		.trim1_offset = PHY1TRIM1_OFFSET,
@@ -116,7 +137,8 @@ static const struct stm32mp2_usb2phy_hw_data stm32mp2_usb2phy_hwdata[] = {
 		.valid_mode = USB2_MODE_DRD,
 		.phyrefsel_mask = 0x7,
 		.phyrefsel_bitpos = 12,
-	}
+	},
+	{ }
 };
 
 /*
@@ -124,16 +146,19 @@ static const struct stm32mp2_usb2phy_hw_data stm32mp2_usb2phy_hwdata[] = {
  * depending on the instance. So identify the instance by using CR offset to report
  * the correct bitfields & modes to use
  */
-static const struct stm32mp2_usb2phy_hw_data *stm32_usb2phy_get_hwdata(unsigned long offset)
+static const struct stm32mp2_usb2phy_hw_data *stm32_usb2phy_get_hwdata(struct udevice *dev,
+								       unsigned long offset)
 {
 	int i;
+	struct stm32mp2_usb2phy_hw_data *hwdata;
 
-	for (i = 0; i < sizeof(stm32mp2_usb2phy_hwdata); i++)
-		if (stm32mp2_usb2phy_hwdata[i].cr_offset == offset)
-			break;
-
-	if (i < sizeof(stm32mp2_usb2phy_hwdata))
-		return &stm32mp2_usb2phy_hwdata[i];
+	hwdata = (struct stm32mp2_usb2phy_hw_data *)dev_get_driver_data(dev);
+	if (!hwdata)
+		return NULL;
+	for (i = 0; (hwdata[i].cr_offset != offset) && hwdata[i].cr_offset; i++)
+		;
+	if (hwdata[i].cr_offset)
+		return &hwdata[i];
 
 	return NULL;
 }
@@ -284,6 +309,54 @@ static int stm32_usb2phy_exit(struct phy *phy)
 	return reset_assert(&phy_dev->reset);
 }
 
+static int stm32_usb2phy_phy_power_on(struct phy *phy)
+{
+	struct stm32_usb2phy *phy_dev = dev_get_priv(phy->dev);
+	int ret;
+
+	if (phy_dev->vbus) {
+		ret = regulator_set_enable_if_allowed(phy_dev->vbus, true);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+static int stm32_usb2phy_phy_power_off(struct phy *phy)
+{
+	struct stm32_usb2phy *phy_dev = dev_get_priv(phy->dev);
+	int ret;
+
+	if (phy_dev->vbus) {
+		ret = regulator_set_enable_if_allowed(phy_dev->vbus, false);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+static int stm32_usb2phy_get_regulator(ofnode node,
+				       char *supply_name,
+				       struct udevice **regulator)
+{
+	struct ofnode_phandle_args regulator_phandle;
+	int ret;
+
+	ret = ofnode_parse_phandle_with_args(node, supply_name,
+					     NULL, 0, 0, &regulator_phandle);
+	if (ret)
+		return ret;
+
+	ret = uclass_get_device_by_ofnode(UCLASS_REGULATOR,
+					  regulator_phandle.node, regulator);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static int stm32_usb2phy_set_mode(struct phy *phy, enum phy_mode mode, int submode)
 {
 	int ret;
@@ -293,7 +366,8 @@ static int stm32_usb2phy_set_mode(struct phy *phy, enum phy_mode mode, int submo
 
 	switch (mode) {
 	case PHY_MODE_USB_HOST:
-		if (phy_data->valid_mode == USB2_MODE_HOST_ONLY)
+		if (phy_data->valid_mode == USB2_MODE_HOST_ONLY ||
+		    phy_data->valid_mode == USB2_MODE_OTG)
 			/*
 			 * CMN bit cleared since OHCI-ctrl registers are inaccessible
 			 * when clocks (clk12+clk48) are turned off in Suspend which
@@ -311,7 +385,7 @@ static int stm32_usb2phy_set_mode(struct phy *phy, enum phy_mode mode, int submo
 			 * are turned off, there is some internal error inside the usb3dr-ctrl
 			 * while running in usb3-speed
 			 */
-			if (!phy_dev->internal_vbus_comp && submode == USB_ROLE_NONE) {
+			if (submode == USB_ROLE_NONE) {
 				ret = regmap_update_bits(phy_dev->regmap,
 							 phy_data->cr_offset,
 							 SYSCFG_USB2PHY2CR_USB2PHY2CMN_MASK |
@@ -341,13 +415,10 @@ static int stm32_usb2phy_set_mode(struct phy *phy, enum phy_mode mode, int submo
 		 * VBUS is not present then usb-ctrl puts PHY in suspend and inturn
 		 * PHY turns off clocks to ctrl which makes the device-mode init fail
 		 */
-		if (phy_dev->internal_vbus_comp) {
+		if (phy_data->valid_mode == USB2_MODE_OTG) {
 			ret = regmap_update_bits(phy_dev->regmap,
 						 phy_data->cr_offset,
-						 SYSCFG_USB2PHY2CR_USB2PHY2CMN_MASK |
-						 SYSCFG_USB2PHY2CR_VBUSVALID_MASK |
-						 SYSCFG_USB2PHY2CR_VBUSVLDEXTSEL_MASK |
-						 SYSCFG_USB2PHY2CR_VBUSVLDEXT_MASK,
+						 SYSCFG_USB2PHY2CR_USB2PHY2CMN_MASK,
 						 0);
 		} else {
 			if (submode == USB_ROLE_NONE) {
@@ -561,13 +632,15 @@ static int stm32_usb2phy_tuning(struct udevice *dev, ofnode node)
 static const struct phy_ops stm32_usb2phy_ops = {
 	.init = stm32_usb2phy_init,
 	.exit = stm32_usb2phy_exit,
+	.power_on = stm32_usb2phy_phy_power_on,
+	.power_off = stm32_usb2phy_phy_power_off,
 	.set_mode = stm32_usb2phy_set_mode,
 };
 
 static int stm32_usb2phy_probe(struct udevice *dev)
 {
 	struct stm32_usb2phy *phy_dev = dev_get_priv(dev);
-	ofnode node = dev_ofnode(dev);
+	ofnode node = dev_ofnode(dev), connector;
 	int ret;
 	u32 phycr;
 
@@ -606,16 +679,10 @@ static int stm32_usb2phy_probe(struct udevice *dev)
 		dev_dbg(dev, "Can't get vdda18-supply regulator\n");
 	}
 
-	phy_dev->hw_data = stm32_usb2phy_get_hwdata(phycr);
+	phy_dev->hw_data = stm32_usb2phy_get_hwdata(dev, phycr);
 	if (!phy_dev->hw_data) {
 		dev_err(dev, "can't get matching stm32mp2_usb2_of_data\n");
 		return -EINVAL;
-	}
-
-	if (phy_dev->hw_data->valid_mode != USB2_MODE_HOST_ONLY) {
-		phy_dev->internal_vbus_comp = ofnode_read_bool(node, "st,internal-vbus-comp");
-		dev_dbg(dev, "Using usb2phy %s VBUS Comparator\n",
-			phy_dev->internal_vbus_comp ? "Internal" : "External");
 	}
 
 	/* Configure phy tuning */
@@ -625,11 +692,27 @@ static int stm32_usb2phy_probe(struct udevice *dev)
 		return ret;
 	}
 
+	connector = ofnode_find_subnode(node, "connector");
+	if (ofnode_valid(connector)) {
+		ret = stm32_usb2phy_get_regulator(connector, "vbus-supply",
+						  &phy_dev->vbus);
+		if (ret) {
+			if (ret != -ENOENT) {
+				dev_err(dev, "Can't get vbus regulator\n");
+				return ret;
+			}
+			phy_dev->vbus = NULL;
+		}
+	} else {
+		phy_dev->vbus = NULL;
+	}
+
 	return 0;
 }
 
 static const struct udevice_id stm32_usb2phy_of_match[] = {
-	{ .compatible = "st,stm32mp25-usb2phy", },
+	{ .compatible = "st,stm32mp25-usb2phy", .data = (ulong)stm32mp25_usb2phy_hwdata },
+	{ .compatible = "st,stm32mp21-usb2phy", .data = (ulong)stm32mp21_usb2phy_hwdata },
 	{ },
 };
 

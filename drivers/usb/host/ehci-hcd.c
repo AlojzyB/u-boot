@@ -659,7 +659,7 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 		token = hc32_to_cpu(vtd->qt_token);
 		if (!(QT_TOKEN_GET_STATUS(token) & QT_TOKEN_STATUS_ACTIVE))
 			break;
-		WATCHDOG_RESET();
+		schedule();
 	} while (get_timer(ts) < timeout);
 	qhtoken = hc32_to_cpu(qh->qh_overlay.qt_token);
 
@@ -723,12 +723,10 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 		dev->act_len = length - QT_TOKEN_GET_TOTALBYTES(qhtoken);
 	} else {
 		dev->act_len = 0;
-#ifndef CONFIG_USB_EHCI_FARADAY
 		debug("dev=%u, usbsts=%#x, p[1]=%#x, p[2]=%#x\n",
 		      dev->devnum, ehci_readl(&ctrl->hcor->or_usbsts),
 		      ehci_readl(&ctrl->hcor->or_portsc[0]),
 		      ehci_readl(&ctrl->hcor->or_portsc[1]));
-#endif
 	}
 
 	free(qtd);
@@ -1207,9 +1205,6 @@ int usb_lowlevel_init(int index, enum usb_init_type init, void **controller)
 	rc = ehci_hcd_init(index, init, &ctrl->hccr, &ctrl->hcor);
 	if (rc)
 		return rc;
-#endif
-#ifdef CONFIG_USB_EHCI_FARADAY
-	tweaks |= EHCI_TWEAK_NO_INIT_CF;
 #endif
 	rc = ehci_common_init(ctrl, tweaks);
 	if (rc)

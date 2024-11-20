@@ -6,6 +6,7 @@
 # Normal rules (sorted alphabetically)
 #
 .*
+!.checkpatch.conf
 *.a
 *.asn1.[ch]
 *.bin
@@ -52,6 +53,7 @@ fit-dtb.blob*
 #
 !.gitignore
 !.mailmap
+!.get_maintainer.*
 
 #
 # Generated files
@@ -104,3 +106,9 @@ __pycache__
 # pylint files
 /pylint.cur
 /pylint.out/
+
+# moveconfig database
+/moveconfig.db
+
+# Clang's compilation database file
+/compile_commands.json

@@ -80,7 +80,7 @@ GmListElement* makeGmListElement (void* bas)
 	return this;
 }
 
-void gcleanup ()
+void gcleanup (void)
 {
 	BOOL rval;
 	assert ( (head == NULL) || (head->base == (void*)gAddressBase));
@@ -596,6 +596,9 @@ ulong mem_malloc_start = 0;
 ulong mem_malloc_end = 0;
 ulong mem_malloc_brk = 0;
 
+static bool malloc_testing;	/* enable test mode */
+static int malloc_max_allocs;	/* return NULL after this many calls to malloc() */
+
 void *sbrk(ptrdiff_t increment)
 {
 	ulong old = mem_malloc_brk;
@@ -628,7 +631,7 @@ void mem_malloc_init(ulong start, ulong size)
 
 	debug("using memory %#lx-%#lx for malloc()\n", mem_malloc_start,
 	      mem_malloc_end);
-#ifdef CONFIG_SYS_MALLOC_CLEAR_ON_INIT
+#if CONFIG_IS_ENABLED(SYS_MALLOC_CLEAR_ON_INIT)
 	memset((void *)mem_malloc_start, 0x0, size);
 #endif
 	malloc_bin_reloc();
@@ -1306,6 +1309,11 @@ Void_t* mALLOc(bytes) size_t bytes;
 	if (!(gd->flags & GD_FLG_FULL_MALLOC_INIT))
 		return malloc_simple(bytes);
 #endif
+
+  if (CONFIG_IS_ENABLED(UNIT_TEST) && malloc_testing) {
+    if (--malloc_max_allocs < 0)
+      return NULL;
+  }
 
   /* check if mem_malloc_init() was run */
   if ((mem_malloc_start == 0) && (mem_malloc_end == 0)) {
@@ -2145,7 +2153,7 @@ Void_t* cALLOc(n, elem_size) size_t n; size_t elem_size;
 
 
   /* check if expand_top called, in which case don't need to clear */
-#ifdef CONFIG_SYS_MALLOC_CLEAR_ON_INIT
+#if CONFIG_IS_ENABLED(SYS_MALLOC_CLEAR_ON_INIT)
 #if MORECORE_CLEARS
   mchunkptr oldtop = top;
   INTERNAL_SIZE_T oldtopsize = chunksize(top);
@@ -2176,7 +2184,7 @@ Void_t* cALLOc(n, elem_size) size_t n; size_t elem_size;
 
     csz = chunksize(p);
 
-#ifdef CONFIG_SYS_MALLOC_CLEAR_ON_INIT
+#if CONFIG_IS_ENABLED(SYS_MALLOC_CLEAR_ON_INIT)
 #if MORECORE_CLEARS
     if (p == oldtop && csz > oldtopsize)
     {
@@ -2332,7 +2340,7 @@ size_t malloc_usable_size(mem) Void_t* mem;
 /* Utility to update current_mallinfo for malloc_stats and mallinfo() */
 
 #ifdef DEBUG
-static void malloc_update_mallinfo()
+static void malloc_update_mallinfo(void)
 {
   int i;
   mbinptr b;
@@ -2389,7 +2397,7 @@ static void malloc_update_mallinfo()
 */
 
 #ifdef DEBUG
-void malloc_stats()
+void malloc_stats(void)
 {
   malloc_update_mallinfo();
   printf("max system bytes = %10u\n",
@@ -2410,7 +2418,7 @@ void malloc_stats()
 */
 
 #ifdef DEBUG
-struct mallinfo mALLINFo()
+struct mallinfo mALLINFo(void)
 {
   malloc_update_mallinfo();
   return current_mallinfo;
@@ -2468,6 +2476,17 @@ int initf_malloc(void)
 #endif
 
 	return 0;
+}
+
+void malloc_enable_testing(int max_allocs)
+{
+	malloc_testing = true;
+	malloc_max_allocs = max_allocs;
+}
+
+void malloc_disable_testing(void)
+{
+	malloc_testing = false;
 }
 
 /*

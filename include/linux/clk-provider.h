@@ -72,7 +72,7 @@ struct clk_mux {
 	 */
 	const char	* const *parent_names;
 	u8		num_parents;
-#if CONFIG_IS_ENABLED(SANDBOX_CLK_CCF)
+#if IS_ENABLED(CONFIG_SANDBOX_CLK_CCF)
 	u32             io_mux_val;
 #endif
 
@@ -100,7 +100,7 @@ struct clk_gate {
 	void __iomem	*reg;
 	u8		bit_idx;
 	u8		flags;
-#if CONFIG_IS_ENABLED(SANDBOX_CLK_CCF)
+#if IS_ENABLED(CONFIG_SANDBOX_CLK_CCF)
 	u32		io_gate_val;
 #endif
 };
@@ -128,7 +128,7 @@ struct clk_divider {
 	u8		width;
 	u8		flags;
 	const struct clk_div_table	*table;
-#if CONFIG_IS_ENABLED(SANDBOX_CLK_CCF)
+#if IS_ENABLED(CONFIG_SANDBOX_CLK_CCF)
 	u32             io_divider_val;
 #endif
 };

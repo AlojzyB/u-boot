@@ -510,6 +510,7 @@ static int fastboot_tx_write_str(const char *buffer)
 
 static void compl_do_reset(struct usb_ep *ep, struct usb_request *req)
 {
+	g_dnl_unregister();
 	do_reset(NULL, 0, 0, NULL);
 }
 
@@ -584,7 +585,6 @@ static void do_bootm_on_complete(struct usb_ep *ep, struct usb_request *req)
 	do_exit_on_complete(ep, req);
 }
 
-#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
 static void do_acmd_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	/* When usb dequeue complete will be called
@@ -594,7 +594,6 @@ static void do_acmd_complete(struct usb_ep *ep, struct usb_request *req)
 	if (req->status == 0)
 		fastboot_acmd_complete();
 }
-#endif
 
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 {
@@ -638,11 +637,10 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 		case FASTBOOT_COMMAND_REBOOT_RECOVERY:
 			fastboot_func->in_req->complete = compl_do_reset;
 			break;
-#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
 		case FASTBOOT_COMMAND_ACMD:
-			fastboot_func->in_req->complete = do_acmd_complete;
+			if (CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT))
+				fastboot_func->in_req->complete = do_acmd_complete;
 			break;
-#endif
 		}
 	}
 

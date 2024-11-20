@@ -41,6 +41,7 @@
 #define STM32MP25_RIFSC_ENTRIES		178
 
 /* Compartiment IDs */
+#define RIF_CID0			0x0
 #define RIF_CID1			0x1
 
 /*
@@ -103,15 +104,15 @@ static int stm32_rif_release_semaphore(void *base, u32 id)
 	return 0;
 }
 
-static int rifsc_parse_feature_domain(ofnode node, struct ofnode_phandle_args *args)
+static int rifsc_parse_access_controller(ofnode node, struct ofnode_phandle_args *args)
 {
 	int ret;
 
-	ret = ofnode_parse_phandle_with_args(node, "feature-domains",
-					     "#feature-domain-cells", 0,
+	ret = ofnode_parse_phandle_with_args(node, "access-controllers",
+					     "#access-controller-cells", 0,
 					     0, args);
 	if (ret) {
-		log_debug("failed to parse feature-domains (%d)\n", ret);
+		log_debug("failed to parse access-controller (%d)\n", ret);
 		return ret;
 	}
 
@@ -150,8 +151,12 @@ static int rifsc_check_access(void *base, u32 id)
 	if (cid_reg_value & CIDCFGR_SEMEN)
 		goto skip_cid_check;
 
-	/* Skip CID check if CID filtering isn't enabled */
-	if (!(cid_reg_value & CIDCFGR_CFEN))
+	/*
+	 * Skip cid check if CID filtering isn't enabled or filtering is enabled on CID0, which
+	 * corresponds to whatever CID.
+	 */
+	if (!(cid_reg_value & CIDCFGR_CFEN) ||
+	    FIELD_GET(RIFSC_RISC_SCID_MASK, cid_reg_value) == RIF_CID0)
 		goto skip_cid_check;
 
 	/* Coherency check with the CID configuration */
@@ -191,7 +196,7 @@ int stm32_rifsc_check_access_by_id(ofnode device_node, u32 id)
 	if (id >= STM32MP25_RIFSC_ENTRIES)
 		return -EINVAL;
 
-	err = rifsc_parse_feature_domain(device_node, &args);
+	err = rifsc_parse_access_controller(device_node, &args);
 	if (err)
 		return err;
 
@@ -203,7 +208,7 @@ int stm32_rifsc_check_access(ofnode device_node)
 	struct ofnode_phandle_args args;
 	int err;
 
-	err = rifsc_parse_feature_domain(device_node, &args);
+	err = rifsc_parse_access_controller(device_node, &args);
 	if (err)
 		return err;
 
@@ -272,7 +277,7 @@ static int stm32_rifsc_child_post_bind(struct udevice *dev)
 	if (!dev_has_ofnode(dev))
 		return -EPERM;
 
-	ret = rifsc_parse_feature_domain(dev_ofnode(dev), &args);
+	ret = rifsc_parse_access_controller(dev_ofnode(dev), &args);
 	if (ret)
 		return ret;
 
@@ -302,7 +307,7 @@ static int stm32_rifsc_bind(struct udevice *dev)
 		if (!ofnode_is_enabled(node))
 			continue;
 
-		err = rifsc_parse_feature_domain(node, &args);
+		err = rifsc_parse_access_controller(node, &args);
 		if (err) {
 			dev_dbg(dev, "%s failed to parse child on bus (%d)\n", node_name, err);
 			continue;
@@ -341,7 +346,7 @@ static int stm32_rifsc_remove(struct udevice *bus)
 }
 
 static const struct udevice_id stm32_rifsc_ids[] = {
-	{ .compatible = "st,stm32mp25-sys-bus" },
+	{ .compatible = "st,stm32mp25-rifsc" },
 	{},
 };
 

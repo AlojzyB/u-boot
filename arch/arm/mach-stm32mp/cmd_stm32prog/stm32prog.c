@@ -790,8 +790,8 @@ static int init_device(struct stm32prog_data *data,
 			last_addr = (u64)(block_dev->lba - GPT_HEADER_SZ - 1) *
 				    block_dev->blksz;
 		}
-		log_debug("MMC %d: lba=%ld blksz=%ld\n", dev->dev_id,
-			  block_dev->lba, block_dev->blksz);
+		log_debug("MMC %d: lba=%lld blksz=%ld\n", dev->dev_id,
+			  (u64)block_dev->lba, block_dev->blksz);
 		log_debug(" available address = 0x%llx..0x%llx\n",
 			  first_addr, last_addr);
 		log_debug(" full_update = %d\n", dev->full_update);
@@ -1219,7 +1219,10 @@ static int stm32prog_alt_add(struct stm32prog_data *data,
 	char multiplier,  type;
 
 	/* max 3 digit for sector size */
-	if (part->size > SZ_1M) {
+	if (part->size > SZ_1G) {
+		size = (u32)(part->size / SZ_1G);
+		multiplier = 'G';
+	} else if (part->size > SZ_1M) {
 		size = (u32)(part->size / SZ_1M);
 		multiplier = 'M';
 	} else if (part->size > SZ_1K) {
@@ -1588,7 +1591,7 @@ int stm32prog_pmic_read(struct stm32prog_data *data, u32 offset, u8 *buffer,
 	int result = 0, ret;
 	struct udevice *dev;
 
-	if (!CONFIG_IS_ENABLED(PMIC_STPMIC1)) {
+	if (!IS_ENABLED(CONFIG_PMIC_STPMIC1)) {
 		stm32prog_err("PMIC update not supported");
 
 		return -EOPNOTSUPP;
@@ -1638,7 +1641,7 @@ int stm32prog_pmic_start(struct stm32prog_data *data)
 	int ret;
 	struct udevice *dev;
 
-	if (!CONFIG_IS_ENABLED(PMIC_STPMIC1)) {
+	if (!IS_ENABLED(CONFIG_PMIC_STPMIC1)) {
 		stm32prog_err("PMIC update not supported");
 
 		return -EOPNOTSUPP;
@@ -1753,7 +1756,7 @@ static void stm32prog_end_phase(struct stm32prog_data *data, u64 offset)
 		}
 	}
 
-	if (CONFIG_IS_ENABLED(MTD) &&
+	if (IS_ENABLED(CONFIG_MTD) &&
 	    data->cur_part->bin_nb > 1) {
 		if (stm32prog_copy_fsbl(data->cur_part)) {
 			stm32prog_err("%s (0x%x): copy of fsbl failed",
@@ -1837,7 +1840,7 @@ static int part_delete(struct stm32prog_data *data,
 		 * need to switch to associated hwpart 1 or 2
 		 */
 		if (part->part_id < 0)
-			if (blk_select_hwpart_devnum(IF_TYPE_MMC,
+			if (blk_select_hwpart_devnum(UCLASS_MMC,
 						     part->dev->dev_id,
 						     -part->part_id))
 				return -1;
@@ -1846,7 +1849,7 @@ static int part_delete(struct stm32prog_data *data,
 
 		/* return to user partition */
 		if (part->part_id < 0)
-			blk_select_hwpart_devnum(IF_TYPE_MMC,
+			blk_select_hwpart_devnum(UCLASS_MMC,
 						 part->dev->dev_id, 0);
 		if (blks != blks_size) {
 			ret = -1;

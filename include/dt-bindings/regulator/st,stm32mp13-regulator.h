@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause) */
 /*
- * Copyright (C) 2020, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
  */
 
 #ifndef __DT_BINDINGS_REGULATOR_ST_STM32MP13_REGULATOR_H

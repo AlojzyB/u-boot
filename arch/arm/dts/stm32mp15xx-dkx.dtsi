@@ -73,6 +73,28 @@
 			reg = <0xd4000000 0x4000000>;
 			no-map;
 		};
+
+		/* global autoconfigured region for contiguous allocations */
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x8000000>;
+			alignment = <0x2000>;
+			linux,cma-default;
+		};
+	};
+
+	hdmi: connector {
+		compatible = "hdmi-connector";
+		label = "hdmi";
+
+		type = "a";
+
+		port {
+			hdmi_connector_in: endpoint {
+				remote-endpoint = <&sii9022_out>;
+			};
+		};
 	};
 
 	hdmi: connector {
@@ -558,7 +580,7 @@
 		sai2a_port: port {
 			sai2a_endpoint: endpoint {
 				remote-endpoint = <&cs42l51_tx_endpoint>;
-				format = "i2s";
+				dai-format = "i2s";
 				mclk-fs = <256>;
 				dai-tdm-slot-num = <2>;
 				dai-tdm-slot-width = <32>;
@@ -576,7 +598,7 @@
 		sai2b_port: port {
 			sai2b_endpoint: endpoint {
 				remote-endpoint = <&cs42l51_rx_endpoint>;
-				format = "i2s";
+				dai-format = "i2s";
 				mclk-fs = <256>;
 				dai-tdm-slot-num = <2>;
 				dai-tdm-slot-width = <32>;

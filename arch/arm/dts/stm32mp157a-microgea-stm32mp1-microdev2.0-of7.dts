@@ -82,6 +82,7 @@
 
 	port {
 		ltdc_ep0_out: endpoint {
+
 			remote-endpoint = <&panel_in>;
 		};
 	};

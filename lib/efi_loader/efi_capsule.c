@@ -45,17 +45,7 @@ const efi_guid_t fwu_guid_os_request_fw_accept =
 static struct efi_file_handle *bootdev_root;
 #endif
 
-/**
- * get_last_capsule - get the last capsule index
- *
- * Retrieve the index of the capsule invoked last time from "CapsuleLast"
- * variable.
- *
- * Return:
- * * > 0	- the last capsule index invoked
- * * 0xffff	- on error, or no capsule invoked yet
- */
-static __maybe_unused unsigned int get_last_capsule(void)
+static __maybe_unused unsigned int get_capsule_index(const u16 *variable_name)
 {
 	u16 value16[11]; /* "CapsuleXXXX": non-null-terminated */
 	char value[5];
@@ -65,7 +55,7 @@ static __maybe_unused unsigned int get_last_capsule(void)
 	int i;
 
 	size = sizeof(value16);
-	ret = efi_get_variable_int(u"CapsuleLast", &efi_guid_capsule_report,
+	ret = efi_get_variable_int(variable_name, &efi_guid_capsule_report,
 				   NULL, &size, value16, NULL);
 	if (ret != EFI_SUCCESS || size != 22 ||
 	    u16_strncmp(value16, u"Capsule", 7))
@@ -82,6 +72,35 @@ static __maybe_unused unsigned int get_last_capsule(void)
 		index = 0xffff;
 err:
 	return index;
+}
+
+/**
+ * get_last_capsule - get the last capsule index
+ *
+ * Retrieve the index of the capsule invoked last time from "CapsuleLast"
+ * variable.
+ *
+ * Return:
+ * * > 0	- the last capsule index invoked
+ * * 0xffff	- on error, or no capsule invoked yet
+ */
+static __maybe_unused unsigned int get_last_capsule(void)
+{
+	return get_capsule_index(u"CapsuleLast");
+}
+
+/**
+ * get_max_capsule - get the max capsule index
+ *
+ * Retrieve the max capsule index value from "CapsuleMax" variable.
+ *
+ * Return:
+ * * > 0	- the max capsule index
+ * * 0xffff	- on error, or "CapsuleMax" variable does not exist
+ */
+static __maybe_unused unsigned int get_max_capsule(void)
+{
+	return get_capsule_index(u"CapsuleMax");
 }
 
 /**
@@ -166,12 +185,14 @@ efi_fmp_find(efi_guid_t *image_type, u8 image_index, u64 instance,
 	efi_status_t ret;
 
 	for (i = 0, handle = handles; i < no_handles; i++, handle++) {
-		ret = EFI_CALL(efi_handle_protocol(
-				*handle,
-				&efi_guid_firmware_management_protocol,
-				(void **)&fmp));
+		struct efi_handler *fmp_handler;
+
+		ret = efi_search_protocol(
+				*handle, &efi_guid_firmware_management_protocol,
+				&fmp_handler);
 		if (ret != EFI_SUCCESS)
 			continue;
+		fmp = fmp_handler->protocol_interface;
 
 		/* get device's image info */
 		info_size = 0;
@@ -222,10 +243,6 @@ efi_fmp_find(efi_guid_t *image_type, u8 image_index, u64 instance,
 skip:
 		efi_free_pool(package_version_name);
 		free(image_info);
-		EFI_CALL(efi_close_protocol(
-				(efi_handle_t)fmp,
-				&efi_guid_firmware_management_protocol,
-				NULL, NULL));
 		if (found)
 			return fmp;
 	}
@@ -351,9 +368,8 @@ efi_status_t efi_capsule_authenticate(const void *capsule, efi_uintn_t capsule_s
 					     auth_hdr->auth_info.hdr.dwLength
 					     - sizeof(auth_hdr->auth_info),
 					     &buf);
-	if (IS_ERR(capsule_sig)) {
+	if (!capsule_sig) {
 		debug("Parsing variable's pkcs7 header failed\n");
-		capsule_sig = NULL;
 		goto out;
 	}
 
@@ -386,12 +402,6 @@ out:
 	free(regs);
 
 	return status;
-}
-#else
-efi_status_t efi_capsule_authenticate(const void *capsule, efi_uintn_t capsule_size,
-				      void **image, efi_uintn_t *image_size)
-{
-	return EFI_UNSUPPORTED;
 }
 #endif /* CONFIG_EFI_CAPSULE_AUTHENTICATE */
 
@@ -574,6 +584,13 @@ static efi_status_t efi_capsule_update_firmware(
 		fw_accept_os = capsule_data->flags & FW_ACCEPT_OS ? 0x1 : 0x0;
 	}
 
+	if (guidcmp(&capsule_data->capsule_guid,
+		    &efi_guid_firmware_management_capsule_id)) {
+		log_err("Unsupported capsule type: %pUs\n",
+			&capsule_data->capsule_guid);
+		return EFI_UNSUPPORTED;
+	}
+
 	/* sanity check */
 	if (capsule_data->header_size < sizeof(*capsule) ||
 	    capsule_data->header_size >= capsule_data->capsule_image_size)
@@ -744,15 +761,7 @@ efi_status_t EFIAPI efi_update_capsule(
 
 		log_debug("Capsule[%d] (guid:%pUs)\n",
 			  i, &capsule->capsule_guid);
-		if (!guidcmp(&capsule->capsule_guid,
-			     &efi_guid_firmware_management_capsule_id)) {
-			ret  = efi_capsule_update_firmware(capsule);
-		} else {
-			log_err("Unsupported capsule type: %pUs\n",
-				&capsule->capsule_guid);
-			ret = EFI_UNSUPPORTED;
-		}
-
+		ret  = efi_capsule_update_firmware(capsule);
 		if (ret != EFI_SUCCESS)
 			goto out;
 	}
@@ -826,17 +835,18 @@ efi_status_t __weak efi_load_capsule_drivers(void)
 
 	if (IS_ENABLED(CONFIG_EFI_CAPSULE_FIRMWARE_FIT)) {
 		handle = NULL;
-		ret = EFI_CALL(efi_install_multiple_protocol_interfaces(
-				&handle, &efi_guid_firmware_management_protocol,
-				&efi_fmp_fit, NULL));
+		ret = efi_install_multiple_protocol_interfaces(&handle,
+							       &efi_guid_firmware_management_protocol,
+							       &efi_fmp_fit,
+							       NULL);
 	}
 
 	if (IS_ENABLED(CONFIG_EFI_CAPSULE_FIRMWARE_RAW)) {
 		handle = NULL;
-		ret = EFI_CALL(efi_install_multiple_protocol_interfaces(
-				&handle,
-				&efi_guid_firmware_management_protocol,
-				&efi_fmp_raw, NULL));
+		ret = efi_install_multiple_protocol_interfaces(&handle,
+							       &efi_guid_firmware_management_protocol,
+							       &efi_fmp_raw,
+							       NULL);
 	}
 
 	return ret;
@@ -1113,10 +1123,13 @@ static efi_status_t efi_capsule_scan_dir(u16 ***files, unsigned int *num)
 	/* ignore an error */
 	EFI_CALL((*dirh->close)(dirh));
 
-	/* in ascii order */
-	/* FIXME: u16 version of strcasecmp */
+	/*
+	 * Capsule files are applied in case insensitive alphabetic order
+	 *
+	 * TODO: special handling of rightmost period
+	 */
 	qsort(tmp_files, count, sizeof(*tmp_files),
-	      (int (*)(const void *, const void *))strcasecmp);
+	      (int (*)(const void *, const void *))u16_strcasecmp);
 	*files = tmp_files;
 	*num = count;
 	ret = EFI_SUCCESS;
@@ -1292,7 +1305,7 @@ efi_status_t efi_launch_capsules(void)
 {
 	struct efi_capsule_header *capsule = NULL;
 	u16 **files;
-	unsigned int nfiles, index, i;
+	unsigned int nfiles, index, index_max, i;
 	efi_status_t ret;
 	bool capsule_update = true;
 	bool update_status = true;
@@ -1301,6 +1314,7 @@ efi_status_t efi_launch_capsules(void)
 	if (check_run_capsules() != EFI_SUCCESS)
 		return EFI_SUCCESS;
 
+	index_max = get_max_capsule();
 	index = get_last_capsule();
 
 	/*
@@ -1319,7 +1333,7 @@ efi_status_t efi_launch_capsules(void)
 	/* Launch capsules */
 	for (i = 0, ++index; i < nfiles; i++, index++) {
 		log_debug("Applying %ls\n", files[i]);
-		if (index > 0xffff)
+		if (index > index_max)
 			index = 0;
 		ret = efi_capsule_read_file(files[i], &capsule);
 		if (ret == EFI_SUCCESS) {

@@ -17,6 +17,7 @@
 /* ETZPC peripheral as firewall bus */
 /* ETZPC registers */
 #define ETZPC_DECPROT			0x10
+#define ETZPC_HWCFGR			0x3F0
 
 /* ETZPC miscellaneous */
 #define ETZPC_PROT_MASK			GENMASK(1, 0)
@@ -24,36 +25,30 @@
 #define ETZPC_DECPROT_SHIFT		1
 
 #define IDS_PER_DECPROT_REGS		16
-#define STM32MP15_ETZPC_ENTRIES		96
-#define STM32MP13_ETZPC_ENTRIES		64
 
-/*
- * struct stm32_sys_bus_match_data: Match data for ETZPC device
- *
- * @max_entries: Number of securable peripherals in ETZPC
- */
-struct stm32_sys_bus_match_data {
-	unsigned int max_entries;
-};
+#define ETZPC_HWCFGR_NUM_PER_SEC	GENMASK(15, 8)
+#define ETZPC_HWCFGR_NUM_AHB_SEC	GENMASK(23, 16)
 
 /*
  * struct stm32_etzpc_plat: Information about ETZPC device
  *
  * @base: Base address of ETZPC
+ * @max_entries: Number of securable peripherals in ETZPC
  */
 struct stm32_etzpc_plat {
 	void *base;
+	unsigned int max_entries;
 };
 
 static int etzpc_parse_feature_domain(ofnode node, struct ofnode_phandle_args *args)
 {
 	int ret;
 
-	ret = ofnode_parse_phandle_with_args(node, "feature-domains",
-					     "#feature-domain-cells", 0,
+	ret = ofnode_parse_phandle_with_args(node, "access-controllers",
+					     "#access-controller-cells", 0,
 					     0, args);
 	if (ret) {
-		log_debug("failed to parse feature-domains (%d)\n", ret);
+		log_debug("failed to parse access-controller (%d)\n", ret);
 		return ret;
 	}
 
@@ -86,7 +81,6 @@ static int etzpc_check_access(void *base, u32 id)
 
 int stm32_etzpc_check_access_by_id(ofnode device_node, u32 id)
 {
-	struct stm32_sys_bus_match_data *pconf;
 	struct stm32_etzpc_plat *plat;
 	struct ofnode_phandle_args args;
 	struct udevice *dev;
@@ -106,9 +100,8 @@ int stm32_etzpc_check_access_by_id(ofnode device_node, u32 id)
 	}
 
 	plat = dev_get_plat(dev);
-	pconf = (struct stm32_sys_bus_match_data *)dev_get_driver_data(dev);
 
-	if (id >= pconf->max_entries) {
+	if (id >= plat->max_entries) {
 		dev_err(dev, "Invalid sys bus ID for %s\n", ofnode_get_name(device_node));
 		return -EINVAL;
 	}
@@ -124,8 +117,8 @@ int stm32_etzpc_check_access(ofnode device_node)
 static int stm32_etzpc_bind(struct udevice *dev)
 {
 	struct stm32_etzpc_plat *plat = dev_get_plat(dev);
-	struct stm32_sys_bus_match_data *pconf;
 	struct ofnode_phandle_args args;
+	u32 nb_per, nb_master;
 	int ret = 0, err = 0;
 	ofnode node, parent;
 
@@ -135,7 +128,13 @@ static int stm32_etzpc_bind(struct udevice *dev)
 		return -ENOENT;
 	}
 
-	pconf = (struct stm32_sys_bus_match_data *)dev_get_driver_data(dev);
+	/* Get number of etzpc entries*/
+	nb_per = FIELD_GET(ETZPC_HWCFGR_NUM_PER_SEC,
+			   readl(plat->base + ETZPC_HWCFGR));
+	nb_master = FIELD_GET(ETZPC_HWCFGR_NUM_AHB_SEC,
+			      readl(plat->base + ETZPC_HWCFGR));
+	plat->max_entries = nb_per + nb_master;
+
 	parent = dev_ofnode(dev);
 	for (node = ofnode_first_subnode(parent);
 	     ofnode_valid(node);
@@ -157,7 +156,7 @@ static int stm32_etzpc_bind(struct udevice *dev)
 			continue;
 		}
 
-		if (args.args[0] >= pconf->max_entries) {
+		if (args.args[0] >= plat->max_entries) {
 			dev_err(dev, "Invalid sys bus ID for %s\n", node_name);
 			return -EINVAL;
 		}
@@ -182,17 +181,8 @@ static int stm32_etzpc_bind(struct udevice *dev)
 	return ret;
 }
 
-static const struct stm32_sys_bus_match_data stm32mp15_sys_bus_data = {
-	.max_entries = STM32MP15_ETZPC_ENTRIES,
-};
-
-static const struct stm32_sys_bus_match_data stm32mp13_sys_bus_data = {
-	.max_entries = STM32MP13_ETZPC_ENTRIES,
-};
-
 static const struct udevice_id stm32_etzpc_ids[] = {
-	{ .compatible = "st,stm32mp13-sys-bus", .data = (ulong)&stm32mp13_sys_bus_data },
-	{ .compatible = "st,stm32mp15-sys-bus", .data = (ulong)&stm32mp15_sys_bus_data },
+	{ .compatible = "st,stm32-etzpc" },
 	{},
 };
 

@@ -12,7 +12,6 @@
 #include <log.h>
 #include <malloc.h>
 #include <mapmem.h>
-#include <lcd.h>
 #include <net.h>
 #include <fdt_support.h>
 #include <video.h>
@@ -381,6 +380,7 @@ err:
 
 /**
  * label_boot_fdtoverlay() - Loads fdt overlays specified in 'fdtoverlays'
+ * or 'devicetree-overlay'
  *
  * @ctx: PXE context
  * @label: Label to process
@@ -815,6 +815,7 @@ static const struct token keywords[] = {
 	{"devicetreedir", T_FDTDIR},
 	{"fdtdir", T_FDTDIR},
 	{"fdtoverlays", T_FDTOVERLAYS},
+	{"devicetree-overlay", T_FDTOVERLAYS},
 	{"ontimeout", T_ONTIMEOUT,},
 	{"ipappend", T_IPAPPEND,},
 	{"background", T_BACKGROUND,},
@@ -1368,7 +1369,10 @@ static int parse_pxefile_top(struct pxe_context *ctx, char *p, unsigned long bas
 			break;
 
 		case T_PROMPT:
-			eol_or_eof(&p);
+			err = parse_integer(&p, &cfg->prompt);
+			// Do not fail if prompt configuration is undefined
+			if (err <  0)
+				eol_or_eof(&p);
 			break;
 
 		case T_EOL:
@@ -1527,7 +1531,7 @@ void handle_pxe_menu(struct pxe_context *ctx, struct pxe_menu *cfg)
 		/* display BMP if available */
 		if (cfg->bmp) {
 			if (get_relfile(ctx, cfg->bmp, image_load_addr, NULL)) {
-#if defined(CONFIG_DM_VIDEO)
+#if defined(CONFIG_VIDEO)
 				struct udevice *dev;
 
 				err = uclass_first_device_err(UCLASS_VIDEO, &dev);
@@ -1574,7 +1578,7 @@ void handle_pxe_menu(struct pxe_context *ctx, struct pxe_menu *cfg)
 
 int pxe_setup_ctx(struct pxe_context *ctx, struct cmd_tbl *cmdtp,
 		  pxe_getfile_func getfile, void *userdata,
-		  bool allow_abs_path, const char *bootfile)
+		  bool allow_abs_path, const char *bootfile, bool use_ipv6)
 {
 	const char *last_slash;
 	size_t path_len = 0;
@@ -1584,6 +1588,7 @@ int pxe_setup_ctx(struct pxe_context *ctx, struct cmd_tbl *cmdtp,
 	ctx->getfile = getfile;
 	ctx->userdata = userdata;
 	ctx->allow_abs_path = allow_abs_path;
+	ctx->use_ipv6 = use_ipv6;
 
 	/* figure out the boot directory, if there is one */
 	if (bootfile && strlen(bootfile) >= MAX_TFTP_PATH_LEN)

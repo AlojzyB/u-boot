@@ -8,12 +8,12 @@ Synopis
 
 ::
 
-    bootflow scan [-abel] [bootdev]
+    bootflow scan [-abelGH] [bootdev]
     bootflow list [-e]
     bootflow select [<num|name>]
     bootflow info [-d]
     bootflow boot
-
+    bootflow cmdline [set|get|clear|delete|auto] <param> [<value>]
 
 Description
 -----------
@@ -56,6 +56,16 @@ Flags are:
     List bootflows while scanning. This is helpful when you want to see what
     is happening during scanning. Use it with the `-b` flag to see which
     bootdev and bootflows are being tried.
+
+-G
+    Skip global bootmeths when scanning. By default these are tried first, but
+    this flag disables them.
+
+-H
+    Don't use bootdev hunters. By default these are used before each boot
+    priority or label is tried, to see if more bootdevs can be discovered, but
+    this flag disables that process.
+
 
 The optional argument specifies a particular bootdev to scan. This can either be
 the name of a bootdev or its sequence number (both shown with `bootdev list`).
@@ -138,13 +148,14 @@ Name       mmc\@7e202000.bootdev.part_2
 Device     mmc\@7e202000.bootdev
 Block dev  mmc\@7e202000.blk
 Type       distro
-Method:    syslinux
+Method:    extlinux
 State      ready
 Partition  2
 Subdir     (none)
 Filename   /extlinux/extlinux.conf
 Buffer     3db7ad48
 Size       232 (562 bytes)
+FDT:       <NULL>
 Error      0
 =========  ===============================
 
@@ -169,6 +180,10 @@ Buffer
 Size
     Size of the bootflow file
 
+FDT:
+    Filename of the device tree, if supported. The EFI bootmeth uses this to
+    remember the filename to load. If `<NULL>` then there is none.
+
 Error
     Error number returned from scanning for the bootflow. This is 0 if the
     bootflow is in the 'loaded' state, or a negative error value on error. You
@@ -182,6 +197,36 @@ bootflow boot
 
 This boots the current bootflow.
 
+
+bootflow cmdline
+~~~~~~~~~~~~~~~~
+
+Some bootmeths can obtain the OS command line since it is stored with the OS.
+In that case, you can use `bootflow cmdline` to adjust this. The command line
+is assumed to be in the format used by Linux, i.e. a space-separated set of
+parameters with optional values, e.g. "noinitrd console=/dev/tty0".
+
+To change or add a parameter, use::
+
+    bootflow cmdline set <param> <value>
+
+To clear a parameter value to empty you can use "" for the value, or use::
+
+    bootflow cmdline clear <param>
+
+To delete a parameter entirely, use::
+
+    bootflow cmdline delete <param>
+
+Automatic parameters are available in a very few cases. You can use these to
+add parmeters where the value is known by U-Boot. For example::
+
+    bootflow cmdline auto earlycon
+    bootflow cmdline auto console
+
+can be used to set the early console (or console) to a suitable value so that
+output appears on the serial port. This is only supported by the 16550 serial
+driver so far.
 
 Example
 -------
@@ -243,7 +288,6 @@ displayed and booted::
     Name:      mmc@7e202000.bootdev.part_2
     Device:    mmc@7e202000.bootdev
     Block dev: mmc@7e202000.blk
-    Sequence:  1
     Method:    distro
     State:     ready
     Partition: 2
@@ -251,6 +295,10 @@ displayed and booted::
     Filename:  extlinux/extlinux.conf
     Buffer:    3db7ae88
     Size:      232 (562 bytes)
+    OS:        Fedora-Workstation-armhfp-31-1.9 (5.3.7-301.fc31.armv7hl)
+    Cmdline:   (none)
+    Logo:      (none)
+    FDT:       <NULL>
     Error:     0
     U-Boot> bootflow boot
     ** Booting bootflow 'smsc95xx_eth.bootdev.0'
@@ -411,6 +459,69 @@ Here is am example using the -e flag to see all errors::
     ---  -----------  ------  --------  ----  ---------------------  ----------------
     (21 bootflows, 2 valid)
     U-Boot>
+
+Here is an example of booting ChromeOS, adjusting the console beforehand. Note that
+the cmdline is word-wrapped here and some parts of the command line are elided::
+
+    => bootfl list
+    Showing all bootflows
+    Seq  Method       State   Uclass    Part  Name                      Filename
+    ---  -----------  ------  --------  ----  ------------------------  ----------------
+    0  cros         ready   nvme         0  5.10.153-20434-g98da1eb2c <NULL>
+    1  efi          ready   nvme         c  nvme#0.blk#1.bootdev.part efi/boot/bootia32.efi
+    2  efi          ready   usb_mass_    2  usb_mass_storage.lun0.boo efi/boot/bootia32.efi
+    ---  -----------  ------  --------  ----  ------------------------  ----------------
+    (3 bootflows, 3 valid)
+    => bootfl sel 0
+    => bootfl inf
+    Name:      5.10.153-20434-g98da1eb2cf9d (chrome-bot@chromeos-release-builder-us-central1-b-x32-12-xijx) #1 SMP PREEMPT Tue Jan 24 19:38:23 PST 2023
+    Device:    nvme#0.blk#1.bootdev
+    Block dev: nvme#0.blk#1
+    Method:    cros
+    State:     ready
+    Partition: 0
+    Subdir:    (none)
+    Filename:  <NULL>
+    Buffer:    737a1400
+    Size:      c47000 (12873728 bytes)
+    OS:        ChromeOS
+    Cmdline:   console= loglevel=7 init=/sbin/init cros_secure drm.trace=0x106
+        root=/dev/dm-0 rootwait ro dm_verity.error_behavior=3
+        dm_verity.max_bios=-1 dm_verity.dev_wait=1
+        dm="1 vroot none ro 1,0 6348800
+          verity payload=PARTUUID=799c935b-ae62-d143-8493-816fa936eef7/PARTNROFF=1
+          hashtree=PARTUUID=799c935b-ae62-d143-8493-816fa936eef7/PARTNROFF=1
+          hashstart=6348800 alg=sha256
+          root_hexdigest=78cc462cd45aecbcd49ca476587b4dee59aa1b00ba5ece58e2c29ec9acd914ab
+          salt=8dec4dc80a75dd834a9b3175c674405e15b16a253fdfe05c79394ae5fd76f66a"
+        noinitrd vt.global_cursor_default=0
+        kern_guid=799c935b-ae62-d143-8493-816fa936eef7 add_efi_memmap
+        noresume i915.modeset=1 ramoops.ecc=1 tpm_tis.force=0
+        intel_pmc_core.warn_on_s0ix_failures=1 i915.enable_guc=3 i915.enable_dc=4
+        xdomain=0 swiotlb=65536 intel_iommu=on i915.enable_psr=1
+        usb-storage.quirks=13fe:6500:u
+    X86 setup: 742e3400
+    Logo:      (none)
+    FDT:       <NULL>
+    Error:     0
+    => bootflow cmdline auto earlycon
+    => bootflow cmd auto console
+    => print bootargs
+    bootargs=console=ttyS0,115200n8 loglevel=7 ...
+        usb-storage.quirks=13fe:6500:u earlycon=uart8250,mmio32,0xfe03e000,115200n8
+    => bootflow cmd del console
+    => print bootargs
+    bootargs=loglevel=7 ... earlycon=uart8250,mmio32,0xfe03e000,115200n8
+    => bootfl boot
+    ** Booting bootflow '5.10.153-20434-g98da1eb2cf9d (chrome-bot@chromeos-release-builder-us-central1-b-x32-12-xijx) #1 SMP PREEMPT Tue Jan 24 19:38:23 PST 2023' with cros
+    Kernel command line: "loglevel=7 ... earlycon=uart8250,mmio32,0xfe03e000,115200n8"
+
+    Starting kernel ...
+
+    [    0.000000] Linux version 5.10.153-20434-g98da1eb2cf9d (chrome-bot@chromeos-release-builder-us-central1-b-x32-12-xijx) (Chromium OS 15.0_pre465103_p20220825-r4 clang version 15.0.0 (/var/tmp/portage/sys-devel/llvm-15.0_pre465103_p20220825-r4/work/llvm-15.0_pre465103_p20220825/clang db1978b67431ca3462ad8935bf662c15750b8252), LLD 15.0.0) #1 SMP PREEMPT Tue Jan 24 19:38:23 PST 2023
+    [    0.000000] Command line: loglevel=7 ... usb-storage.quirks=13fe:6500:u earlycon=uart8250,mmio32,0xfe03e000,115200n8
+    [    0.000000] x86/split lock detection: warning about user-space split_locks
+
 
 
 Return value

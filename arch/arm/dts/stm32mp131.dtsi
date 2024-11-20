@@ -3,7 +3,6 @@
  * Copyright (C) STMicroelectronics 2021 - All Rights Reserved
  * Author: Alexandre Torgue <alexandre.torgue@foss.st.com> for STMicroelectronics.
  */
-#include <dt-bindings/bus/stm32mp13_sys_bus.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/stm32mp13-clks.h>
 #include <dt-bindings/regulator/st,stm32mp13-regulator.h>
@@ -24,18 +23,8 @@
 			reg = <0>;
 			clocks = <&scmi_perf 0>;
 			clock-names = "cpu";
-			nvmem-cells = <&part_number_otp>;
-			nvmem-cell-names = "part_number";
 			#cooling-cells = <2>;
 		};
-	};
-
-	intc: interrupt-controller@a0021000 {
-		compatible = "arm,cortex-a7-gic";
-		#interrupt-cells = <3>;
-		interrupt-controller;
-		reg = <0xa0021000 0x1000>,
-		      <0xa0022000 0x2000>;
 	};
 
 	arm-pmu {
@@ -47,23 +36,8 @@
 
 	arm_wdt: watchdog {
 		compatible = "arm,smc-wdt";
-		arm,smc-id = <0xb200005a>;
+		arm,smc-id = <0xbc000000>;
 		status = "disabled";
-	};
-
-	psci {
-		compatible = "arm,psci-1.0";
-		method = "smc";
-	};
-
-	timer {
-		compatible = "arm,armv7-timer";
-		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
-			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>;
-		interrupt-parent = <&intc>;
-		always-on;
 	};
 
 	firmware {
@@ -121,6 +95,29 @@
 		};
 	};
 
+	intc: interrupt-controller@a0021000 {
+		compatible = "arm,cortex-a7-gic";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		reg = <0xa0021000 0x1000>,
+		      <0xa0022000 0x2000>;
+	};
+
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	timer {
+		compatible = "arm,armv7-timer";
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(1) | IRQ_TYPE_LEVEL_LOW)>;
+		interrupt-parent = <&intc>;
+		always-on;
+	};
+
 	pm_domain {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -148,22 +145,10 @@
 			thermal-sensors = <&dts>;
 
 			trips {
-				cpu_alert: cpu-alert0 {
-					temperature = <95000>;
-					hysteresis = <10000>;
-					type = "passive";
-				};
 				cpu_crit: cpu-crit0 {
 					temperature = <120000>;
-					hysteresis = <0>;
+					hysteresis = <1000>;
 					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&cpu_alert>;
-					cooling-device = <&cpu0 1 1>;
 				};
 			};
 		};
@@ -404,8 +389,8 @@
 
 		i2s2: audio-controller@4000b000 {
 			compatible = "st,stm32h7-i2s";
-			#sound-dai-cells = <0>;
 			reg = <0x4000b000 0x400>;
+			#sound-dai-cells = <0>;
 			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
 			dmas = <&dmamux1 39 0x400 0x01>,
 			       <&dmamux1 40 0x400 0x01>;
@@ -429,8 +414,8 @@
 
 		i2s3: audio-controller@4000c000 {
 			compatible = "st,stm32h7-i2s";
-			#sound-dai-cells = <0>;
 			reg = <0x4000c000 0x400>;
+			#sound-dai-cells = <0>;
 			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
 			dmas = <&dmamux1 61 0x400 0x01>,
 			       <&dmamux1 62 0x400 0x01>;
@@ -454,8 +439,8 @@
 
 		spdifrx: audio-controller@4000d000 {
 			compatible = "st,stm32h7-spdifrx";
-			#sound-dai-cells = <0>;
 			reg = <0x4000d000 0x400>;
+			#sound-dai-cells = <0>;
 			clocks = <&rcc SPDIF_K>;
 			clock-names = "kclk";
 			interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
@@ -669,8 +654,8 @@
 
 		i2s1: audio-controller@44004000 {
 			compatible = "st,stm32h7-i2s";
-			#sound-dai-cells = <0>;
 			reg = <0x44004000 0x400>;
+			#sound-dai-cells = <0>;
 			interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>;
 			dmas = <&dmamux1 37 0x400 0x01>,
 			       <&dmamux1 38 0x400 0x01>;
@@ -694,19 +679,18 @@
 
 		sai1: sai@4400a000 {
 			compatible = "st,stm32h7-sai";
+			reg = <0x4400a000 0x4>, <0x4400a3f0 0x10>;
+			ranges = <0 0x4400a000 0x400>;
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x4400a000 0x400>;
-			reg = <0x4400a000 0x4>, <0x4400a3f0 0x10>;
 			interrupts = <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH>;
 			resets = <&rcc SAI1_R>;
 			status = "disabled";
 
 			sai1a: audio-controller@4400a004 {
-				#sound-dai-cells = <0>;
-
 				compatible = "st,stm32-sai-sub-a";
 				reg = <0x4 0x20>;
+				#sound-dai-cells = <0>;
 				clocks = <&rcc SAI1_K>;
 				clock-names = "sai_ck";
 				dmas = <&dmamux1 87 0x400 0x01>;
@@ -714,9 +698,9 @@
 			};
 
 			sai1b: audio-controller@4400a024 {
-				#sound-dai-cells = <0>;
 				compatible = "st,stm32-sai-sub-b";
 				reg = <0x24 0x20>;
+				#sound-dai-cells = <0>;
 				clocks = <&rcc SAI1_K>;
 				clock-names = "sai_ck";
 				dmas = <&dmamux1 88 0x400 0x01>;
@@ -726,18 +710,18 @@
 
 		sai2: sai@4400b000 {
 			compatible = "st,stm32h7-sai";
+			reg = <0x4400b000 0x4>, <0x4400b3f0 0x10>;
+			ranges = <0 0x4400b000 0x400>;
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x4400b000 0x400>;
-			reg = <0x4400b000 0x4>, <0x4400b3f0 0x10>;
 			interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>;
 			resets = <&rcc SAI2_R>;
 			status = "disabled";
 
 			sai2a: audio-controller@4400b004 {
-				#sound-dai-cells = <0>;
 				compatible = "st,stm32-sai-sub-a";
 				reg = <0x4 0x20>;
+				#sound-dai-cells = <0>;
 				clocks = <&rcc SAI2_K>;
 				clock-names = "sai_ck";
 				dmas = <&dmamux1 89 0x400 0x01>;
@@ -745,9 +729,9 @@
 			};
 
 			sai2b: audio-controller@4400b024 {
-				#sound-dai-cells = <0>;
 				compatible = "st,stm32-sai-sub-b";
 				reg = <0x24 0x20>;
+				#sound-dai-cells = <0>;
 				clocks = <&rcc SAI2_K>;
 				clock-names = "sai_ck";
 				dmas = <&dmamux1 90 0x400 0x01>;
@@ -766,8 +750,8 @@
 
 			dfsdm0: filter@0 {
 				compatible = "st,stm32-dfsdm-adc";
-				#io-channel-cells = <1>;
 				reg = <0>;
+				#io-channel-cells = <1>;
 				interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
 				dmas = <&dmamux1 101 0x400 0x01>;
 				dma-names = "rx";
@@ -776,8 +760,8 @@
 
 			dfsdm1: filter@1 {
 				compatible = "st,stm32-dfsdm-adc";
-				#io-channel-cells = <1>;
 				reg = <1>;
+				#io-channel-cells = <1>;
 				interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
 				dmas = <&dmamux1 102 0x400 0x01>;
 				dma-names = "rx";
@@ -851,7 +835,6 @@
 			compatible = "st,stm32mp135-pinctrl";
 			ranges = <0 0x50002000 0x8400>;
 			interrupt-parent = <&exti>;
-			pins-are-numbered;
 
 			gpioa: gpio@50002000 {
 				gpio-controller;
@@ -1201,18 +1184,17 @@
 			};
 		};
 
-		etzpc: etzpc@5c007000 {
-			compatible = "st,stm32mp13-sys-bus";
+		etzpc: bus@5c007000 {
+			compatible = "st,stm32-etzpc", "simple-bus";
 			reg = <0x5c007000 0x400>;
 			#address-cells = <1>;
 			#size-cells = <1>;
+			#access-controller-cells = <1>;
 			ranges;
-			feature-domain-controller;
-			#feature-domain-cells = <1>;
 
 			adc_2: adc@48004000 {
-				reg = <0x48004000 0x400>;
 				compatible = "st,stm32mp13-adc-core";
+				reg = <0x48004000 0x400>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&rcc ADC2>, <&rcc ADC2_K>;
 				clock-names = "bus", "adc";
@@ -1220,7 +1202,7 @@
 				#interrupt-cells = <1>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_ADC2_ID>;
+				access-controllers = <&etzpc 33>;
 				status = "disabled";
 
 				adc2: adc@0 {
@@ -1272,7 +1254,7 @@
 				usb33d-supply = <&scmi_usb33>;
 				power-domains = <&pd_core>;
 				wakeup-source;
-				feature-domains = <&etzpc STM32MP1_ETZPC_OTG_ID>;
+				access-controllers = <&etzpc 34>;
 				status = "disabled";
 			};
 
@@ -1287,7 +1269,7 @@
 				dmas = <&dmamux1 41 0x400 0x5>,
 				       <&dmamux1 42 0x400 0x1>;
 				dma-names = "rx", "tx";
-				feature-domains = <&etzpc STM32MP1_ETZPC_USART1_ID>;
+				access-controllers = <&etzpc 16>;
 				status = "disabled";
 			};
 
@@ -1302,19 +1284,19 @@
 				dmas = <&dmamux1 43 0x400 0x5>,
 				       <&dmamux1 44 0x400 0x1>;
 				dma-names = "rx", "tx";
-				feature-domains = <&etzpc STM32MP1_ETZPC_USART2_ID>;
+				access-controllers = <&etzpc 17>;
 				status = "disabled";
 			};
 
 			i2s4: audio-controller@4c002000 {
 				compatible = "st,stm32h7-i2s";
-				#sound-dai-cells = <0>;
 				reg = <0x4c002000 0x400>;
+				#sound-dai-cells = <0>;
 				interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
 				dmas = <&dmamux1 83 0x400 0x01>,
 				       <&dmamux1 84 0x400 0x01>;
 				dma-names = "rx", "tx";
-				feature-domains = <&etzpc STM32MP1_ETZPC_SPI4_ID>;
+				access-controllers = <&etzpc 13>;
 				status = "disabled";
 			};
 
@@ -1329,7 +1311,7 @@
 				dmas = <&dmamux1 83 0x400 0x01>,
 				       <&dmamux1 84 0x400 0x01>;
 				dma-names = "rx", "tx";
-				feature-domains = <&etzpc STM32MP1_ETZPC_SPI4_ID>;
+				access-controllers = <&etzpc 18>;
 				status = "disabled";
 			};
 
@@ -1344,7 +1326,7 @@
 				dmas = <&dmamux1 85 0x400 0x01>,
 				       <&dmamux1 86 0x400 0x01>;
 				dma-names = "rx", "tx";
-				feature-domains = <&etzpc STM32MP1_ETZPC_SPI5_ID>;
+				access-controllers = <&etzpc 19>;
 				status = "disabled";
 			};
 
@@ -1363,7 +1345,7 @@
 				dma-names = "rx", "tx";
 				st,syscfg-fmp = <&syscfg 0x4 0x4>;
 				i2c-analog-filter;
-				feature-domains = <&etzpc STM32MP1_ETZPC_I2C3_ID>;
+				access-controllers = <&etzpc 20>;
 				status = "disabled";
 			};
 
@@ -1382,7 +1364,7 @@
 				dma-names = "rx", "tx";
 				st,syscfg-fmp = <&syscfg 0x4 0x8>;
 				i2c-analog-filter;
-				feature-domains = <&etzpc STM32MP1_ETZPC_I2C4_ID>;
+				access-controllers = <&etzpc 21>;
 				status = "disabled";
 			};
 
@@ -1401,7 +1383,7 @@
 				dma-names = "rx", "tx";
 				st,syscfg-fmp = <&syscfg 0x4 0x10>;
 				i2c-analog-filter;
-				feature-domains = <&etzpc STM32MP1_ETZPC_I2C5_ID>;
+				access-controllers = <&etzpc 22>;
 				status = "disabled";
 			};
 
@@ -1414,7 +1396,7 @@
 				interrupt-names = "global";
 				clocks = <&rcc TIM12_K>;
 				clock-names = "int";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM12_ID>;
+				access-controllers = <&etzpc 23>;
 				status = "disabled";
 
 				counter {
@@ -1444,7 +1426,7 @@
 				interrupt-names = "global";
 				clocks = <&rcc TIM13_K>;
 				clock-names = "int";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM13_ID>;
+				access-controllers = <&etzpc 24>;
 				status = "disabled";
 
 				counter {
@@ -1474,7 +1456,7 @@
 				interrupt-names = "global";
 				clocks = <&rcc TIM14_K>;
 				clock-names = "int";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM14_ID>;
+				access-controllers = <&etzpc 25>;
 				status = "disabled";
 
 				counter {
@@ -1509,7 +1491,7 @@
 				       <&dmamux1 107 0x400 0x1>,
 				       <&dmamux1 108 0x400 0x1>;
 				dma-names = "ch1", "up", "trig", "com";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM15_ID>;
+				access-controllers = <&etzpc 26>;
 				status = "disabled";
 
 				counter {
@@ -1542,7 +1524,7 @@
 				dmas = <&dmamux1 109 0x400 0x1>,
 				       <&dmamux1 110 0x400 0x1>;
 				dma-names = "ch1", "up";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM16_ID>;
+				access-controllers = <&etzpc 27>;
 				status = "disabled";
 
 				counter {
@@ -1575,7 +1557,7 @@
 				dmas = <&dmamux1 111 0x400 0x1>,
 				       <&dmamux1 112 0x400 0x1>;
 				dma-names = "ch1", "up";
-				feature-domains = <&etzpc STM32MP1_ETZPC_TIM17_ID>;
+				access-controllers = <&etzpc 28>;
 				status = "disabled";
 
 				counter {
@@ -1606,7 +1588,7 @@
 				clock-names = "mux";
 				power-domains = <&pd_core_ret>;
 				wakeup-source;
-				feature-domains = <&etzpc STM32MP1_ETZPC_LPTIM2_ID>;
+				access-controllers = <&etzpc 1>;
 				status = "disabled";
 
 				pwm {
@@ -1642,7 +1624,7 @@
 				clock-names = "mux";
 				power-domains = <&pd_core_ret>;
 				wakeup-source;
-				feature-domains = <&etzpc STM32MP1_ETZPC_LPTIM3_ID>;
+				access-controllers = <&etzpc 2>;
 				status = "disabled";
 
 				pwm {
@@ -1671,7 +1653,7 @@
 				resets = <&rcc HASH1_R>;
 				dmas = <&mdma 30 0x2 0x1000a02 0x0 0x0 0x0>;
 				dma-names = "in";
-				feature-domains = <&etzpc STM32MP1_ETZPC_HASH_ID>;
+				access-controllers = <&etzpc 41>;
 				status = "disabled";
 			};
 
@@ -1680,7 +1662,7 @@
 				reg = <0x54004000 0x400>;
 				clocks = <&rcc RNG1_K>;
 				resets = <&rcc RNG1_R>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_RNG_ID>;
+				access-controllers = <&etzpc 40>;
 				status = "disabled";
 			};
 
@@ -1696,7 +1678,7 @@
 				#size-cells = <1>;
 				clocks = <&rcc FMC_K>;
 				resets = <&rcc FMC_R>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_FMC_ID>;
+				access-controllers = <&etzpc 54>;
 				status = "disabled";
 
 				nand-controller@4,0 {
@@ -1730,7 +1712,7 @@
 				dma-names = "tx", "rx";
 				clocks = <&rcc QSPI_K>;
 				resets = <&rcc QSPI_R>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_QSPI_ID>;
+				access-controllers = <&etzpc 55>;
 				status = "disabled";
 			};
 
@@ -1745,7 +1727,7 @@
 				cap-sd-highspeed;
 				cap-mmc-highspeed;
 				max-frequency = <130000000>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_SDMMC1_ID>;
+				access-controllers = <&etzpc 50>;
 				status = "disabled";
 			};
 
@@ -1760,12 +1742,12 @@
 				cap-sd-highspeed;
 				cap-mmc-highspeed;
 				max-frequency = <130000000>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_SDMMC2_ID>;
+				access-controllers = <&etzpc 51>;
 				status = "disabled";
 			};
 
-			eth1: eth1@5800a000 {
-				compatible = "snps,dwmac-4.20a", "st,stm32mp13-dwmac";
+			ethernet1: ethernet@5800a000 {
+				compatible = "st,stm32mp13-dwmac", "snps,dwmac-4.20a";
 				reg = <0x5800a000 0x2000>;
 				reg-names = "stmmaceth";
 				interrupts-extended = <&intc GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>,
@@ -1786,7 +1768,7 @@
 				snps,pbl = <2>;
 				snps,axi-config = <&stmmac_axi_config_1>;
 				snps,tso;
-				feature-domains = <&etzpc STM32MP1_ETZPC_ETH1_ID>;
+				access-controllers = <&etzpc 48>;
 				status = "disabled";
 
 				stmmac_axi_config_1: stmmac-axi-config {
@@ -1806,7 +1788,7 @@
 				resets = <&rcc USBPHY_R>;
 				vdda1v1-supply = <&scmi_reg11>;
 				vdda1v8-supply = <&scmi_reg18>;
-				feature-domains = <&etzpc STM32MP1_ETZPC_USBPHYCTRL_ID>;
+				access-controllers = <&etzpc 5>;
 				status = "disabled";
 
 				usbphyc_port0: usb-phy@0 {
@@ -1832,21 +1814,24 @@
 
 			nvram: nvram@5c00a100 {
 				compatible = "st,stm32mp15-tamp-nvram";
-				#address-cells = <1>;
-				#size-cells = <1>;
 				reg = <0x5c00a100 0x80>;
 
-				saes_secret_key: tamp-bkp@0 {
-					/* see saes secret key feature */
-					reg = <0x0 0x20>;
-				};
-				boot_mode: tamp-bkp@78 {
-					/* see boot mode selection feature */
-					reg = <0x78 0x4>;
-				};
-				boot_counter: tamp-bkp@7c {
-					/* see boot counter feature */
-					reg = <0x7c 0x4>;
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+					saes_secret_key: tamp-bkp@0 {
+						/* see saes secret key feature */
+						reg = <0x0 0x20>;
+					};
+					boot_mode: tamp-bkp@78 {
+						/* see boot mode selection feature */
+						reg = <0x78 0x4>;
+					};
+					boot_counter: tamp-bkp@7c {
+						/* see boot counter feature */
+						reg = <0x7c 0x4>;
+					};
 				};
 			};
 

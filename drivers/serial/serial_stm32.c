@@ -259,7 +259,7 @@ static int stm32_serial_of_to_plat(struct udevice *dev)
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	plat->base = (void __iomem*)addr;
+	plat->base = (void __iomem *)addr;
 
 	return 0;
 }

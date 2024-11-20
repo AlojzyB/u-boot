@@ -22,7 +22,7 @@
 #define CHECK_MASK			(!CHECK_NUMBER)
 
 /* TODO: add support for timer uclass (for early calls) */
-#ifdef CONFIG_SANDBOX_ARCH
+#ifdef CONFIG_SANDBOX
 #define sdelay(x)	udelay(x)
 #else
 extern void sdelay(unsigned long loops);
@@ -280,7 +280,7 @@ static int adc_vdd_plat_update(struct udevice *dev)
 	 * will bind before its supply regulator device, then the below 'get'
 	 * will return an error.
 	 */
-	if (!uc_pdata->vdd_supply)
+	if (!uc_pdata->vdd_supply || uc_pdata->vdd_microvolts != -ENODATA)
 		return 0;
 
 	ret = regulator_get_value(uc_pdata->vdd_supply);
@@ -297,7 +297,7 @@ static int adc_vss_plat_update(struct udevice *dev)
 	struct adc_uclass_plat *uc_pdata = dev_get_uclass_plat(dev);
 	int ret;
 
-	if (!uc_pdata->vss_supply)
+	if (!uc_pdata->vss_supply || uc_pdata->vss_microvolts != -ENODATA)
 		return 0;
 
 	ret = regulator_get_value(uc_pdata->vss_supply);

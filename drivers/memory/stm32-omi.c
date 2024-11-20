@@ -289,7 +289,7 @@ int stm32_omi_dlyb_configure(struct udevice *dev,
 static void stm32_omi_read_fifo(u8 *val, phys_addr_t addr)
 {
 	*val = readb(addr);
-	WATCHDOG_RESET();
+	schedule();
 }
 
 static void stm32_omi_write_fifo(u8 *val, phys_addr_t addr)

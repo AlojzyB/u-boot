@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /*
- * Copyright (C) 2022, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2023, STMicroelectronics - All Rights Reserved
  */
 
 #define LOG_CATEGORY LOGC_BOARD
@@ -325,7 +325,7 @@ static void board_stm32mp25x_eval_init(void)
 		env_set("hdmi", compatible);
 }
 
-static void board_stm32mp25x_disco_init(void)
+static void board_stm32mp2xx_disco_init(void)
 {
 	const char *compatible;
 	struct udevice *dev;
@@ -407,14 +407,14 @@ static void check_user_button(void)
 	if (!button1 && !button2)
 		return;
 
-	if (button2 && button_get_state(button2) == BUTTON_ON) {
-		log_notice("Fastboot key pressed, ");
-		boot_mode = BOOT_FASTBOOT;
-	}
-
 	if (button1 && button_get_state(button1) == BUTTON_ON) {
 		log_notice("STM32Programmer key pressed, ");
 		boot_mode = BOOT_STM32PROG;
+	}
+
+	if (button2 && button_get_state(button2) == BUTTON_ON) {
+		log_notice("Fastboot key pressed, ");
+		boot_mode = BOOT_FASTBOOT;
 	}
 
 	if (boot_mode != BOOT_NORMAL) {
@@ -428,6 +428,15 @@ static bool board_is_stm32mp257_eval(void)
 {
 	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP25X) &&
 	    (of_machine_is_compatible("st,stm32mp257f-ev1")))
+		return true;
+
+	return false;
+}
+
+static bool board_is_stm32mp235_disco(void)
+{
+	if (CONFIG_IS_ENABLED(TARGET_ST_STM32MP23X) &&
+	    (of_machine_is_compatible("st,stm32mp235f-dk")))
 		return true;
 
 	return false;
@@ -473,7 +482,7 @@ int board_interface_eth_init(struct udevice *dev,
 	/* Ethernet PHY have no cristal or need to be clock by RCC */
 	ext_phyclk = dev_read_bool(dev, "st,ext-phyclk");
 
-	regmap = syscon_regmap_lookup_by_phandle(dev,"st,syscon");
+	regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscon");
 
 	if (!IS_ERR(regmap)) {
 		u32 fmp[3];
@@ -487,16 +496,16 @@ int board_interface_eth_init(struct udevice *dev,
 			regmap_mask = fmp[2];
 			regmap_offset = fmp[1];
 		}
-	} else
+	} else {
 		return -ENODEV;
-
+	}
 	switch (interface_type) {
 	case PHY_INTERFACE_MODE_MII:
 		value = SYSCFG_ETHCR_ETH_SEL_MII;
 		debug("%s: PHY_INTERFACE_MODE_MII\n", __func__);
 		break;
 	case PHY_INTERFACE_MODE_RMII:
-		if ((rate == ETH_CK_F_50M) && ext_phyclk)
+		if (rate == ETH_CK_F_50M && ext_phyclk)
 			value = SYSCFG_ETHCR_ETH_SEL_RMII |
 				SYSCFG_ETHCR_ETH_REF_CLK_SEL;
 		else
@@ -507,7 +516,7 @@ int board_interface_eth_init(struct udevice *dev,
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if ((rate == ETH_CK_F_125M) && ext_phyclk)
+		if (rate == ETH_CK_F_125M && ext_phyclk)
 			value = SYSCFG_ETHCR_ETH_SEL_RGMII |
 				SYSCFG_ETHCR_ETH_CLK_SEL;
 		else
@@ -611,8 +620,8 @@ int board_late_init(void)
 	if (board_is_stm32mp257_eval())
 		board_stm32mp25x_eval_init();
 
-	if (board_is_stm32mp257_disco())
-		board_stm32mp25x_disco_init();
+	if (board_is_stm32mp257_disco() | board_is_stm32mp235_disco())
+		board_stm32mp2xx_disco_init();
 
 	if (IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)) {
 		fdt_compat = fdt_getprop(gd->fdt_blob, 0, "compatible",
@@ -624,9 +633,9 @@ int board_late_init(void)
 				env_set("board_name", fdt_compat + 3);
 
 				buf_len = sizeof(dtb_name);
-				strncpy(dtb_name, fdt_compat + 3, buf_len);
+				strlcpy(dtb_name, fdt_compat + 3, buf_len);
 				buf_len -= strlen(fdt_compat + 3);
-				strncat(dtb_name, ".dtb", buf_len);
+				strlcat(dtb_name, ".dtb", buf_len);
 				env_set("fdtfile", dtb_name);
 			}
 		}
@@ -698,7 +707,7 @@ static int fixup_stm32mp257_eval_panel(void *blob)
 	return 0;
 }
 
-static int fixup_stm32mp257_disco_panel(void *blob)
+static int fixup_stm32mp2xx_disco_panel(void *blob)
 {
 	char const *panel = env_get("panel");
 	bool detect_etml0700z9ndha = false;
@@ -741,8 +750,8 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 			log_err("Error during panel fixup ! (%d)\n", ret);
 	}
 
-	if (board_is_stm32mp257_disco()) {
-		ret = fixup_stm32mp257_disco_panel(blob);
+	if (board_is_stm32mp257_disco() | board_is_stm32mp235_disco()) {
+		ret = fixup_stm32mp2xx_disco_panel(blob);
 		if (ret)
 			log_err("Error during panel fixup ! (%d)\n", ret);
 	}
@@ -793,6 +802,12 @@ void *env_sf_get_env_addr(void)
 }
 
 #if defined(CONFIG_OF_BOARD_FIXUP)
+
+#if defined(CONFIG_STM32MP21X)
+#define SPINAND_NOR_PATH "/soc@0/spi@40430000/flash@0"
+#else
+#define SPINAND_NOR_PATH "/soc@0/ommanager@40500000/spi@40430000/flash@0"
+#endif
 
 int fdt_update_fwu_properties(void *blob, int nodeoff,
 			      const char *compat_str,
@@ -847,16 +862,19 @@ int fdt_update_fwu_mdata(void *blob)
 		break;
 	case BOOT_FLASH_EMMC:
 		/* sdmmc2 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
-						"/soc@0/rifsc@42080000/mmc@48230000");
+		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
+						"/soc@0/bus@42080000/mmc@48230000");
 		break;
 
 	case BOOT_FLASH_SPINAND:
 	case BOOT_FLASH_NOR:
 		/* flash0 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
-						"/soc@0/ommanager@40500000/spi@40430000/flash@0");
+		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
+						SPINAND_NOR_PATH);
 		break;
+	default:
+		/* TF-A firmware update not supported for other boot device */
+		ret = fdt_del_node(blob, nodeoff);
 	}
 
 	return ret;
@@ -866,8 +884,7 @@ int board_fix_fdt(void *blob)
 {
 	int ret = 0;
 
-	if (CONFIG_IS_ENABLED(FWU_MDATA) &&
-	    (board_is_stm32mp257_eval() || board_is_stm32mp257_disco()))
+	if (CONFIG_IS_ENABLED(FWU_MDATA))
 		ret = fdt_update_fwu_mdata(blob);
 
 	return ret;

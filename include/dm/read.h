@@ -32,6 +32,47 @@ static inline const struct device_node *dev_np(const struct udevice *dev)
 
 #if !defined(CONFIG_DM_DEV_READ_INLINE) || CONFIG_IS_ENABLED(OF_PLATDATA)
 /**
+ * dev_read_u8() - read a 8-bit integer from a device's DT property
+ *
+ * @dev:	device to read DT property from
+ * @propname:	name of the property to read from
+ * @outp:	place to put value (if found)
+ * Return: 0 if OK, -ve on error
+ */
+int dev_read_u8(const struct udevice *dev, const char *propname, u8 *outp);
+
+/**
+ * dev_read_u8_default() - read a 8-bit integer from a device's DT property
+ *
+ * @dev:	device to read DT property from
+ * @propname:	name of the property to read from
+ * @def:	default value to return if the property has no value
+ * Return: property value, or @def if not found
+ */
+u8 dev_read_u8_default(const struct udevice *dev, const char *propname, u8 def);
+
+/**
+ * dev_read_u16() - read a 16-bit integer from a device's DT property
+ *
+ * @dev:	device to read DT property from
+ * @propname:	name of the property to read from
+ * @outp:	place to put value (if found)
+ * Return: 0 if OK, -ve on error
+ */
+int dev_read_u16(const struct udevice *dev, const char *propname, u16 *outp);
+
+/**
+ * dev_read_u16_default() - read a 16-bit integer from a device's DT property
+ *
+ * @dev:	device to read DT property from
+ * @propname:	name of the property to read from
+ * @def:	default value to return if the property has no value
+ * Return: property value, or @def if not found
+ */
+u16 dev_read_u16_default(const struct udevice *dev, const char *propname,
+			 u16 def);
+
+/**
  * dev_read_u32() - read a 32-bit integer from a device's DT property
  *
  * @dev:	device to read DT property from
@@ -206,6 +247,20 @@ fdt_addr_t dev_read_addr_size_index(const struct udevice *dev, int index,
 				    fdt_size_t *size);
 
 /**
+ * dev_read_addr_size_index_ptr() - Get the indexed reg property of a device
+ *                                  as a pointer
+ *
+ * @dev: Device to read from
+ * @index: the 'reg' property can hold a list of <addr, size> pairs
+ *	   and @index is used to select which one is required
+ * @size: place to put size value (on success)
+ *
+ * Return: pointer or NULL if not found
+ */
+void *dev_read_addr_size_index_ptr(const struct udevice *dev, int index,
+				   fdt_size_t *size);
+
+/**
  * dev_remap_addr_index() - Get the indexed reg property of a device
  *                               as a memory-mapped I/O pointer
  *
@@ -306,18 +361,13 @@ fdt_addr_t dev_read_addr_pci(const struct udevice *dev);
 void *dev_remap_addr(const struct udevice *dev);
 
 /**
- * dev_read_addr_size() - get address and size from a device property
- *
- * This does no address translation. It simply reads an property that contains
- * an address and a size value, one after the other.
+ * dev_read_addr_size() - Get the reg property of a device
  *
  * @dev: Device to read from
- * @propname: property to read
  * @sizep: place to put size value (on success)
  * Return: address value, or FDT_ADDR_T_NONE on error
  */
-fdt_addr_t dev_read_addr_size(const struct udevice *dev, const char *propname,
-			      fdt_size_t *sizep);
+fdt_addr_t dev_read_addr_size(const struct udevice *dev, fdt_size_t *sizep);
 
 /**
  * dev_read_name() - get the name of a device's node
@@ -528,7 +578,7 @@ const void *dev_read_prop(const struct udevice *dev, const char *propname,
 int dev_read_first_prop(const struct udevice *dev, struct ofprop *prop);
 
 /**
- * ofnode_get_next_property() - get the reference of the next property
+ * ofnode_next_property() - get the reference of the next property
  *
  * Get reference to the next property of the node, it is used to iterate
  * and read all the property with dev_read_prop_by_prop().
@@ -786,6 +836,30 @@ phy_interface_t dev_read_phy_mode(const struct udevice *dev);
 #else /* CONFIG_DM_DEV_READ_INLINE is enabled */
 #include <asm/global_data.h>
 
+static inline int dev_read_u8(const struct udevice *dev,
+			      const char *propname, u8 *outp)
+{
+	return ofnode_read_u8(dev_ofnode(dev), propname, outp);
+}
+
+static inline int dev_read_u8_default(const struct udevice *dev,
+				      const char *propname, u8 def)
+{
+	return ofnode_read_u8_default(dev_ofnode(dev), propname, def);
+}
+
+static inline int dev_read_u16(const struct udevice *dev,
+			       const char *propname, u16 *outp)
+{
+	return ofnode_read_u16(dev_ofnode(dev), propname, outp);
+}
+
+static inline int dev_read_u16_default(const struct udevice *dev,
+				       const char *propname, u16 def)
+{
+	return ofnode_read_u16_default(dev_ofnode(dev), propname, def);
+}
+
 static inline int dev_read_u32(const struct udevice *dev,
 			       const char *propname, u32 *outp)
 {
@@ -892,6 +966,13 @@ static inline fdt_addr_t dev_read_addr_size_index(const struct udevice *dev,
 	return devfdt_get_addr_size_index(dev, index, size);
 }
 
+static inline void *dev_read_addr_size_index_ptr(const struct udevice *dev,
+						 int index,
+						 fdt_size_t *size)
+{
+	return devfdt_get_addr_size_index_ptr(dev, index, size);
+}
+
 static inline fdt_addr_t dev_read_addr_name(const struct udevice *dev,
 					    const char *name)
 {
@@ -937,10 +1018,9 @@ static inline void *dev_remap_addr_name(const struct udevice *dev,
 }
 
 static inline fdt_addr_t dev_read_addr_size(const struct udevice *dev,
-					    const char *propname,
 					    fdt_size_t *sizep)
 {
-	return ofnode_get_addr_size(dev_ofnode(dev), propname, sizep);
+	return dev_read_addr_size_index(dev, 0, sizep);
 }
 
 static inline const char *dev_read_name(const struct udevice *dev)
@@ -1028,19 +1108,19 @@ static inline const void *dev_read_prop(const struct udevice *dev,
 
 static inline int dev_read_first_prop(const struct udevice *dev, struct ofprop *prop)
 {
-	return ofnode_get_first_property(dev_ofnode(dev), prop);
+	return ofnode_first_property(dev_ofnode(dev), prop);
 }
 
 static inline int dev_read_next_prop(struct ofprop *prop)
 {
-	return ofnode_get_next_property(prop);
+	return ofnode_next_property(prop);
 }
 
 static inline const void *dev_read_prop_by_prop(struct ofprop *prop,
 						const char **propname,
 						int *lenp)
 {
-	return ofnode_get_property_by_prop(prop, propname, lenp);
+	return ofprop_get_property(prop, propname, lenp);
 }
 
 static inline int dev_read_alias_seq(const struct udevice *dev, int *devnump)

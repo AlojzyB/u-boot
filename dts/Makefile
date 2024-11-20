@@ -45,11 +45,12 @@ arch-dtbs:
 
 PHONY += arch-ext-dtbs
 arch-ext-dtbs: arch-dtbs
-	$(Q)test -e $(EXT_DTS) && (\
-		echo "  EXT_DTS in $(EXT_DTS)";\
+	$(Q)if [ -e $(EXT_DTS) ]; then \
+		echo "  EXT_DTS in $(EXT_DTS)"; \
 		$(MAKE) $(build)=$(EXT_DTS) dtbs && \
-		cp $(EXT_DTS)/*.dtb arch/$(ARCH)/dts/ || \
-		/bin/true) || /bin/true
+		(cp $(EXT_DTS)/*.dtb arch/$(ARCH)/dts/ || \
+		/bin/true) || /bin/false; \
+	else /bin/true; fi
 
 ifeq ($(CONFIG_SPL_BUILD),y)
 obj-$(CONFIG_OF_EMBED) := dt-spl.dtb.o
@@ -71,5 +72,7 @@ spl_dtbs: $(obj)/dt-$(SPL_NAME).dtb
 clean-files := dt.dtb.S
 
 # Let clean descend into dts directories
-subdir- += ../arch/arm/dts ../arch/microblaze/dts ../arch/mips/dts ../arch/sandbox/dts ../arch/x86/dts ../arch/powerpc/dts ../arch/riscv/dts
+subdir- += ../arch/arc/dts ../arch/arm/dts ../arch/m68k/dts ../arch/microblaze/dts	\
+	   ../arch/mips/dts ../arch/nios2/dts ../arch/powerpc/dts ../arch/riscv/dts	\
+	   ../arch/sandbox/dts ../arch/sh/dts ../arch/x86/dts ../arch/xtensa/dts
 subdir- += $(EXT_DTS)

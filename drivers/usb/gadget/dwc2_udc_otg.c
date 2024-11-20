@@ -27,6 +27,7 @@
 #include <typec.h>
 #include <dm/device_compat.h>
 #include <dm/devres.h>
+#include <wait_bit.h>
 #include <linux/bug.h>
 #include <linux/delay.h>
 
@@ -233,6 +234,14 @@ static int udc_enable(struct dwc2_udc *dev)
 		    readl(&reg->gintmsk));
 
 	dev->gadget.speed = USB_SPEED_UNKNOWN;
+
+	return 0;
+}
+
+static int dwc2_gadget_pullup(struct usb_gadget *g, int is_on)
+{
+	clrsetbits_le32(&reg->dctl, SOFT_DISCONNECT,
+			is_on ? 0 : SOFT_DISCONNECT);
 
 	return 0;
 }
@@ -456,13 +465,24 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 {
 	/* 2. Soft-reset OTG Core and then unreset again. */
 	int i;
-	unsigned int uTemp = writel(CORE_SOFT_RESET, &reg->grstctl);
+	unsigned int uTemp;
 	uint32_t dflt_gusbcfg;
 	uint32_t rx_fifo_sz, tx_fifo_sz, np_tx_fifo_sz;
 	u32 max_hw_ep;
 	int pdata_hw_ep;
+	int ret, snpsid = readl(&reg->gsnpsid); /* Read SNPSID before performing core reset */
 
 	debug("Resetting OTG controller\n");
+	writel(CORE_SOFT_RESET, &reg->grstctl);
+	if ((snpsid & SNPSID_REV_MASK) >=
+		(SNPSID_REV_VER_4_20a & SNPSID_REV_MASK)) {
+		ret = wait_for_bit_le32(&reg->grstctl, GRSTCTL_CSRSTDONE,
+					true, 1000, false);
+		if (ret == 0)
+			clrbits_le32(&reg->grstctl, CORE_SOFT_RESET);
+		else
+			pr_warn("%s: Timeout!\n", __func__);
+	}
 
 	dflt_gusbcfg =
 		0<<15		/* PHY Low Power Clock sel*/
@@ -806,6 +826,7 @@ static void dwc2_fifo_flush(struct usb_ep *_ep)
 }
 
 static const struct usb_gadget_ops dwc2_udc_ops = {
+	.pullup = dwc2_gadget_pullup,
 	/* current versions must always be self-powered */
 #if CONFIG_IS_ENABLED(DM_USB_GADGET)
 	.udc_start		= dwc2_gadget_start,
@@ -1020,7 +1041,10 @@ static int dwc2_udc_otg_of_to_plat(struct udevice *dev)
 		ret = typec_get_data_role(typec, 0);
 		plat->force_b_session_valid = (ret == TYPEC_DEVICE);
 	} else {
+		enum usb_dr_mode dft_mode = usb_get_role_switch_default_mode(dev_ofnode(dev));
+
 		plat->force_b_session_valid =
+			(dft_mode == USB_DR_MODE_PERIPHERAL) ||
 			dev_read_bool(dev, "u-boot,force-b-session-valid");
 		plat->force_vbus_detection =
 			dev_read_bool(dev, "u-boot,force-vbus-detection");
@@ -1039,6 +1063,22 @@ static int dwc2_udc_otg_of_to_plat(struct udevice *dev)
 static void dwc2_set_stm32mp1_hsotg_params(struct dwc2_plat_otg_data *p)
 {
 	p->activate_stm_id_vb_detection = true;
+	p->usb_gusbcfg =
+		0 << 15		/* PHY Low Power Clock sel*/
+		| 0x9 << 10	/* USB Turnaround time (0x9 for HS phy) */
+		| 0 << 9	/* [0:HNP disable,1:HNP enable]*/
+		| 0 << 8	/* [0:SRP disable 1:SRP enable]*/
+		| 0 << 6	/* 0: high speed utmi+, 1: full speed serial*/
+		| 0x7 << 0;	/* FS timeout calibration**/
+
+	if (p->force_b_session_valid)
+		p->usb_gusbcfg |= 1 << 30; /* FDMOD: Force device mode */
+}
+
+static void dwc2_set_stm32mp21_hsotg_params(struct dwc2_plat_otg_data *p)
+{
+	p->activate_stm_ggpio_idpullup_dis = true;
+	p->activate_stm_ggpio_vbvaloval = true;
 	p->usb_gusbcfg =
 		0 << 15		/* PHY Low Power Clock sel*/
 		| 0x9 << 10	/* USB Turnaround time (0x9 for HS phy) */
@@ -1157,6 +1197,12 @@ static int dwc2_udc_otg_probe(struct udevice *dev)
 		}
 	}
 
+	if (plat->activate_stm_ggpio_idpullup_dis)
+		setbits_le32(&usbotg_reg->ggpio, GGPIO_STM32_OTG_GCCFG_IDPULLUP_DIS);
+
+	if (plat->activate_stm_ggpio_vbvaloval && plat->force_b_session_valid)
+		setbits_le32(&usbotg_reg->ggpio, GGPIO_STM32_OTG_GCCFG_VBVALOVAL);
+
 	ret = dwc2_udc_probe(plat);
 	if (ret)
 		return ret;
@@ -1188,6 +1234,8 @@ static const struct udevice_id dwc2_udc_otg_ids[] = {
 	{ .compatible = "brcm,bcm2835-usb" },
 	{ .compatible = "st,stm32mp15-hsotg",
 	  .data = (ulong)dwc2_set_stm32mp1_hsotg_params },
+	{ .compatible = "st,stm32mp21-hsotg",
+	  .data = (ulong)dwc2_set_stm32mp21_hsotg_params },
 	{},
 };
 

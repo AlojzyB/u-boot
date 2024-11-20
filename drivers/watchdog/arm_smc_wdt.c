@@ -70,7 +70,7 @@ static int smcwd_start(struct udevice *dev, u64 timeout_ms, ulong flags)
 	u64 timeout_sec = WDT_TIMEOUT_SECS(timeout_ms);
 	int err;
 
-	if (timeout_sec < priv->min_timeout || timeout_sec > priv->max_timeout) {
+	if (timeout_sec < priv->min_timeout || timeout_sec > priv->max_timeout)	{
 		dev_err(dev, "Timeout value not supported\n");
 		return -EINVAL;
 	}
@@ -94,7 +94,7 @@ static int smcwd_probe(struct udevice *dev)
 
 	err = smcwd_call(dev, SMCWD_INIT, 0, &res);
 	if (err < 0) {
-		dev_err(dev, "Init failed\n");
+		dev_err(dev, "Init failed %i\n", err);
 		return err;
 	}
 

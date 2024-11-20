@@ -9,6 +9,7 @@
 	config {
 		u-boot,boot-led = "led-blue";
 		u-boot,mmc-env-partition = "u-boot-env";
+		st,stm32prog-gpios = <&gpioc 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	};
 
 	fwu-mdata {
@@ -34,15 +35,15 @@
 };
 
 &usart2 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &usart2_pins_a {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins1 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 	pins2 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };

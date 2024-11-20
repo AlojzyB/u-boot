@@ -39,7 +39,7 @@ static int fwu_alt_num_for_dfu_dev(struct dfu_entity *dfu, int dev_num,
 {
 	int ret;
 
-	switch (dfu_dev) {
+	switch(dfu_dev) {
 	case DFU_DEV_MMC:
 		if (dfu->layout == DFU_RAW_ADDR &&
 		    dfu->data.mmc.dev_num == dev_num &&
