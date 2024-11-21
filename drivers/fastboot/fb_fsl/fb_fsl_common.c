@@ -192,9 +192,9 @@ void board_fastboot_setup(void)
 		if (is_soc_rev(CHIP_REV_A))
 			env_set("soc_rev", "reva");
 		else if (is_soc_rev(CHIP_REV_B))
-			env_set("soc_rev", "revb");
+			env_set("soc_rev", "B0");
 		else if (is_soc_rev(CHIP_REV_C))
-			env_set("soc_rev", "revc");
+			env_set("soc_rev", "C0");
 	} else if (is_imx8mq()) {
 		if (!env_get("soc_type"))
 			env_set("soc_type", "imx8mq");
