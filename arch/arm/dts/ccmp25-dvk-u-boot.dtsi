@@ -38,9 +38,9 @@
 };
 
 &ccmp25_i2c1_pins {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };
 
@@ -49,15 +49,15 @@
 };
 
 &usart2 {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 };
 
 &usart2_pins_a {
-	u-boot,dm-pre-reloc;
+	bootph-all;
 	pins1 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 	pins2 {
-		u-boot,dm-pre-reloc;
+		bootph-all;
 	};
 };
