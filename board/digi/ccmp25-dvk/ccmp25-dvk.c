@@ -220,7 +220,7 @@ int board_interface_eth_init(struct udevice *dev,
 	/* Ethernet PHY have no cristal or need to be clock by RCC */
 	ext_phyclk = dev_read_bool(dev, "st,ext-phyclk");
 
-	regmap = syscon_regmap_lookup_by_phandle(dev,"st,syscon");
+	regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscon");
 
 	if (!IS_ERR(regmap)) {
 		u32 fmp[3];
@@ -234,16 +234,16 @@ int board_interface_eth_init(struct udevice *dev,
 			regmap_mask = fmp[2];
 			regmap_offset = fmp[1];
 		}
-	} else
+	} else {
 		return -ENODEV;
-
+	}
 	switch (interface_type) {
 	case PHY_INTERFACE_MODE_MII:
 		value = SYSCFG_ETHCR_ETH_SEL_MII;
 		debug("%s: PHY_INTERFACE_MODE_MII\n", __func__);
 		break;
 	case PHY_INTERFACE_MODE_RMII:
-		if ((rate == ETH_CK_F_50M) && ext_phyclk)
+		if (rate == ETH_CK_F_50M && ext_phyclk)
 			value = SYSCFG_ETHCR_ETH_SEL_RMII |
 				SYSCFG_ETHCR_ETH_REF_CLK_SEL;
 		else
@@ -254,7 +254,7 @@ int board_interface_eth_init(struct udevice *dev,
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
-		if ((rate == ETH_CK_F_125M) && ext_phyclk)
+		if (rate == ETH_CK_F_125M && ext_phyclk)
 			value = SYSCFG_ETHCR_ETH_SEL_RGMII |
 				SYSCFG_ETHCR_ETH_CLK_SEL;
 		else
@@ -306,9 +306,9 @@ int board_late_init(void)
 				env_set("board_name", fdt_compat + 3);
 
 				buf_len = sizeof(dtb_name);
-				strncpy(dtb_name, fdt_compat + 3, buf_len);
+				strlcpy(dtb_name, fdt_compat + 3, buf_len);
 				buf_len -= strlen(fdt_compat + 3);
-				strncat(dtb_name, ".dtb", buf_len);
+				strlcat(dtb_name, ".dtb", buf_len);
 				env_set("fdtfile", dtb_name);
 			}
 		}
@@ -424,16 +424,12 @@ int fdt_update_fwu_mdata(void *blob)
 		break;
 	case BOOT_FLASH_EMMC:
 		/* sdmmc2 */
-		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-mtd",
-						"/soc@0/rifsc@42080000/mmc@48230000");
-		break;
-
-	case BOOT_FLASH_SPINAND:
-	case BOOT_FLASH_NOR:
-		/* flash0 */
 		ret = fdt_update_fwu_properties(blob, nodeoff, "u-boot,fwu-mdata-gpt",
-						"/soc@0/ommanager@40500000/spi@40430000/flash@0");
+						"/soc@0/bus@42080000/mmc@48230000");
 		break;
+	default:
+		/* TF-A firmware update not supported for other boot device */
+		ret = fdt_del_node(blob, nodeoff);
 	}
 
 	return ret;
