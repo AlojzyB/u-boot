@@ -13,18 +13,6 @@
 #define CONFIG_BOARD_DESCRIPTION	"SBC Express"
 #define BOARD_DEY_NAME			"ccimx8x-sbc-express"
 
-/* ENET Config */
-#define FEC_QUIRK_ENET_MAC
-#define CONFIG_RESET_PHY_R
-#define CONFIG_PHY_SMSC
-
-#define CONFIG_FEC_ENET_DEV 0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			0x5B040000
-#define CONFIG_ETHPRIME                 "FEC0"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#endif
-
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
