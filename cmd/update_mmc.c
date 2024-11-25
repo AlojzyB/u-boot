@@ -127,7 +127,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	size_blks = (filesize / mmc_dev->blksz) + (filesize % mmc_dev->blksz != 0);
 
 	if (size_blks > info->size) {
-		printf("File size (%lu bytes) exceeds partition size (%lu bytes)!\n",
+		printf("File size (%lu bytes) exceeds partition size (%llu bytes)!\n",
 			filesize,
 			info->size * mmc_dev->blksz);
 		return -1;
@@ -165,7 +165,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 	}
 
 	/* Write firmware command */
-	sprintf(cmd, "%s write %lx %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
+	sprintf(cmd, "%s write %lx %llx %lx", CONFIG_SYS_STORAGE_MEDIA,
 		loadaddr, info->start, size_blks);
 	if (run_command(cmd, 0))
 		return ERR_WRITE;
@@ -197,7 +197,7 @@ static int write_firmware(char *partname, unsigned long loadaddr,
 
 		/* Read back data... */
 		printf("Reading back firmware...\n");
-		sprintf(cmd, "%s read %lx %lx %lx", CONFIG_SYS_STORAGE_MEDIA,
+		sprintf(cmd, "%s read %lx %llx %lx", CONFIG_SYS_STORAGE_MEDIA,
 			verifyaddr, info->start, size_blks);
 		if (run_command(cmd, 0))
 			return ERR_READ;
