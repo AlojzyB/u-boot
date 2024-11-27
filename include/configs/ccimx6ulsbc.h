@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -60,20 +60,6 @@
 #define CONFIG_CONS_INDEX		5
 #define CONSOLE_DEV			"ttymxc4"
 #define CONFIG_BAUDRATE			115200
-
-/* Ethernet */
-#define CONFIG_FEC_ENET_DEV		0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x0
-#define CONFIG_ETHPRIME                 "FEC0"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x1
-#define CONFIG_ETHPRIME                 "FEC1"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#endif
 
 /* Video */
 #ifdef CONFIG_VIDEO

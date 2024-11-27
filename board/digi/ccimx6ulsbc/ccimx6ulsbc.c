@@ -173,6 +173,7 @@ int board_mmc_init(struct bd_info *bis)
 void reset_phy(void)
 {
 	int reset;
+	const char *ethprime;
 
 	/*
 	 * The reset line must be held low for a minimum of 100usec and cannot
@@ -180,7 +181,13 @@ void reset_phy(void)
 	 * reached 80% of the operating voltage. At this point of the code
 	 * we can assume the second premise is already accomplished.
 	 */
-	if (CONFIG_FEC_ENET_DEV == 0) {
+	ethprime = env_get("ethprime");
+	if (ethprime == NULL) {
+		printf("Error: Could not reset PHY, 'ethprime' not configured\n");
+		return;
+	}
+
+	if (!strcmp(ethprime, "eth0")) {
 		/* MCA_IO7 is connected to PHY reset */
 		reset = (1 << 7);
 		/* Configure as output */
@@ -190,7 +197,7 @@ void reset_phy(void)
 		udelay(100);
 		/* Deassert PHY reset (high) */
 		mca_update_bits(MCA_GPIO_DATA_0, reset, reset);
-	} else if (CONFIG_FEC_ENET_DEV == 1) {
+	} else if (!strcmp(ethprime, "eth1")) {
 		/* CPU GPIO5_6 is connected to PHY reset */
 		reset = IMX_GPIO_NR(5, 6);
 		/* Assert PHY reset (low) */
@@ -199,6 +206,9 @@ void reset_phy(void)
 		udelay(100);
 		/* Deassert PHY reset (high) */
 		gpio_set_value(reset, 1);
+	} else {
+		printf("Error: Could not reset PHY, 'ethprime' has unknown value '%s'\n",
+		       ethprime);
 	}
 }
 
