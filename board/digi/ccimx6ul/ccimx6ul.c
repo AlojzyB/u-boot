@@ -435,6 +435,16 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
 	/* Get serial number from fuses */
 	hwid_get_serial_number(&my_hwid);
 
@@ -474,17 +484,6 @@ int ccimx6ul_late_init(void)
 #ifdef CONFIG_HAS_TRUSTFENCE
 	copy_dek();
 #endif
-
-	/* Verify MAC addresses */
-	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
-	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
-
-	if (board_has_wireless())
-		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
-
-	if (board_has_bluetooth())
-		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
-
 	return 0;
 }
 
