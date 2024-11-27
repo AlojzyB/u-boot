@@ -30,7 +30,7 @@ config CONSOLE_ENABLE_GPIO
 
 config CONSOLE_ENABLE_GPIO_NR
 	int "Console enable GPIO number"
-	depends on CONSOLE_ENABLE_GPIO && !TARGET_CCIMX93_DVK
+	depends on CONSOLE_ENABLE_GPIO && !CC9
 	help
 	  Use one of the GPIO_N lines available on the board to enable the console port:
 	  GPIO_N lines are available:
@@ -40,8 +40,8 @@ config CONSOLE_ENABLE_GPIO_NR
 
 config CONSOLE_ENABLE_GPIO_NAME
 	string "Console enable GPIO name"
-	depends on CONSOLE_ENABLE_GPIO && TARGET_CCIMX93_DVK
-	default "GPIO3_7" if TARGET_CCIMX93_DVK
+	depends on CONSOLE_ENABLE_GPIO && CC9
+	default "GPIO3_7" if CC9
 	help
 	  Use any board GPIO line (by name) to enable the console.
 
@@ -51,7 +51,7 @@ config CONSOLE_ENABLE_GPIO_NAME
 config CONSOLE_ENABLE_GPIO_ACTIVE_LOW
 	bool "Console enable GPIO is active low"
 	depends on CONSOLE_ENABLE_GPIO
-	default y if TARGET_CCIMX93_DVK
+	default y if CC9
 	help
 	  Enable this option when the GPIO to enable the console is active low.
 
