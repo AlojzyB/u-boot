@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -8,7 +8,6 @@
 #define CCIMX6UL_H
 
 /* Common ccimx6ul functions */
-int power_init_ccimx6ul(void);
 int ccimx6ul_init(void);
 int ccimx6ul_late_init(void);
 void print_ccimx6ul_info(void);

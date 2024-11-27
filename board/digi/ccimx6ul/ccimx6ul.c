@@ -27,12 +27,10 @@
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <nand.h>
-
-#ifdef CONFIG_POWER
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
 #include "../../freescale/common/pfuze.h"
-#endif
+
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
@@ -214,56 +212,52 @@ static bool board_has_bluetooth(void)
 		return true; /* assume it has if invalid HWID */
 }
 
-#ifdef CONFIG_POWER
-#define I2C_PMIC	0
-static struct pmic *pfuze;
-int power_init_ccimx6ul(void)
+#ifdef CONFIG_DM_PMIC
+int power_init_board(void)
 {
-	int ret;
-	unsigned int reg, rev_id;
+	struct udevice *dev;
+	int ret, dev_id, rev_id;
+	unsigned int reg;
 
-	ret = power_pfuze3000_init(I2C_PMIC);
-	if (ret)
+	ret = pmic_get("pfuze3000@8", &dev);
+	if (ret == -ENODEV)
+		return 0;
+	if (ret != 0)
 		return ret;
 
-	pfuze = pmic_get("PFUZE3000");
-	ret = pmic_probe(pfuze);
-	if (ret)
-		return ret;
-
-	pmic_reg_read(pfuze, PFUZE3000_DEVICEID, &reg);
-	pmic_reg_read(pfuze, PFUZE3000_REVID, &rev_id);
-	printf("PMIC:  PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+	dev_id = pmic_reg_read(dev, PFUZE3000_DEVICEID);
+	rev_id = pmic_reg_read(dev, PFUZE3000_REVID);
+	printf("PMIC: PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", dev_id, rev_id);
 
 	/* disable Low Power Mode during standby mode */
-	pmic_reg_read(pfuze, PFUZE3000_LDOGCTL, &reg);
+	reg = pmic_reg_read(dev, PFUZE3000_LDOGCTL);
 	reg |= 0x1;
-	pmic_reg_write(pfuze, PFUZE3000_LDOGCTL, reg);
+	pmic_reg_write(dev, PFUZE3000_LDOGCTL, reg);
 
 	/* SW1A mode to APS/OFF, to switch off the regulator in standby */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE3000_SW1AMODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1AMODE, reg);
 
 	/* SW1B step ramp up time from 2us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE3000_SW1BCONF, &reg);
+	reg = pmic_reg_read(dev, PFUZE3000_SW1BCONF);
 	reg |= (1 << 6); /* 0 = 2us/25mV , 1 = 4us/25mV */
-	pmic_reg_write(pfuze, PFUZE3000_SW1BCONF, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BCONF, reg);
 
 	/* SW1B mode to APS/PFM, to optimize performance */
 	reg = 0xc;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BMODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BMODE, reg);
 
 	/* SW1B voltage set to 1.3V */
 	reg = 0x18;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BVOLT, reg);
 
 	/* SW1B standby voltage set to 0.925V */
 	reg = 0x09;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BSTBY, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BSTBY, reg);
 
 	/* SW2 mode to APS/OFF, to switch off in standby mode */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE3000_SW2MODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW2MODE, reg);
 
 	return 0;
 }
@@ -273,10 +267,11 @@ void ldo_mode_set(int ldo_bypass)
 {
 	unsigned int value;
 	u32 vddarm;
+	struct udevice *dev;
+	int ret;
 
-	struct pmic *p = pfuze;
-
-	if (!p) {
+	ret = pmic_get("pfuze3000@8", &dev);
+	if (ret == -ENODEV) {
 		printf("No PMIC found!\n");
 		return;
 	}
@@ -285,18 +280,18 @@ void ldo_mode_set(int ldo_bypass)
 	if (ldo_bypass) {
 		prep_anatop_bypass();
 		/* decrease VDDARM to 1.275V */
-		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
+		value = pmic_reg_read(dev, PFUZE3000_SW1BVOLT);
 		value &= ~0x1f;
 		value |= PFUZE3000_SW1AB_SETP(12750);
-		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
+		pmic_reg_write(dev, PFUZE3000_SW1BVOLT, value);
 
 		set_anatop_bypass(1);
 		vddarm = PFUZE3000_SW1AB_SETP(11750);
 
-		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
+		value = pmic_reg_read(dev, PFUZE3000_SW1BVOLT);
 		value &= ~0x1f;
 		value |= vddarm;
-		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
+		pmic_reg_write(dev, PFUZE3000_SW1BVOLT, value);
 
 		finish_anatop_bypass();
 

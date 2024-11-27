@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Digi International, Inc
+ * Copyright (C) 2016-2024, Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -525,16 +525,6 @@ int board_early_init_f(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_POWER
-int power_init_board(void)
-{
-	/* SOM power init */
-	power_init_ccimx6ul();
-
-	return 0;
-}
-#endif
 
 int board_init(void)
 {

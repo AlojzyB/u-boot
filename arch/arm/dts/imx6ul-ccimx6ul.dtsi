@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -136,7 +136,7 @@
 		reg = <0x7e>;
 	};
 
-	pmic: pfuze3000@08 {
+	pmic: pfuze3000@8 {
 		compatible = "fsl,pfuze3000";
 		reg = <0x08>;
 		fsl,nvram;
