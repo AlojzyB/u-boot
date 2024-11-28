@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
+#include <asm/arch/sys_proto.h>
 #include <imx_container.h>
 #include <linux/types.h>
 #include <mmc.h>
@@ -148,6 +149,9 @@ int get_dek_blob(ulong addr, u32 *size)
 	}
 
 	offset = CONTAINER_HDR_EMMC_OFFSET;
+	/* imx8qxp B0 has a different offset */
+	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
+		offset = CONTAINER_HDR_MMCSD_OFFSET;
 	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
 	/* Fail if booting from user partition */
 	if (part == 7) {
