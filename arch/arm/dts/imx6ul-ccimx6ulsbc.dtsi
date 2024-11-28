@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, 2017 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -13,6 +13,11 @@
 	model = "Digi International ConnectCore 6UL SBC.";
 	compatible = "digi,ccimx6ulsbc", "digi,ccimx6ul", "fsl,imx6ul";
 	digi,machine,name = "ccimx6ulsbc";
+
+	aliases {
+		ethernet1 = &fec1;
+		ethernet0 = &fec2;
+	};
 
 	lcd_backlight: backlight {
 		compatible = "pwm-backlight";
