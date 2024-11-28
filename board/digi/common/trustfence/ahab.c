@@ -43,7 +43,9 @@ static ulong get_next_container_addr(ulong addr)
 }
 
 /*
- * Get blob address from AHAB container in 'addr'
+ * Get blob address from AHAB container at the given 'addr'.
+ *
+ * Return blob address on success or 0 on failure
  */
 static ulong get_blob_addr_from_container(ulong addr)
 {
@@ -51,20 +53,25 @@ static ulong get_blob_addr_from_container(ulong addr)
 	struct signature_block_hdr *sign_hdr;
 	ulong blob_addr;
 
+	if (!addr) {
+		printf("Error: Invalid container address (NULL).\n");
+		return 0;
+	}
+
 	phdr = (struct container_hdr *)(addr);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("Error: wrong container header\n");
-		return -1;
+		return 0;
 	}
 	debug("AHAB container header address = 0x%08lx\n", (ulong) phdr);
 
 	sign_hdr =
 	    (struct signature_block_hdr *)((ulong) phdr + phdr->sig_blk_offset);
-	if (sign_hdr->tag != AHAB_SIGN_HDR_TAG
+	if (!sign_hdr || sign_hdr->tag != AHAB_SIGN_HDR_TAG
 	    || sign_hdr->version != AHAB_SIGN_HDR_VER) {
 		debug("Error: wrong signature block header\n");
-		return -1;
+		return 0;
 	}
 	debug("Signature block header address = 0x%08lx\n", (ulong) sign_hdr);
 
@@ -81,7 +88,7 @@ int get_dek_blob_offset(ulong addr, u32 *offset)
 	debug("== Second AHAB container.\n");
 	container_addr = addr + CONTAINER_HDR_ALIGNMENT;
 	dek_blob_addr = get_blob_addr_from_container(container_addr);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		return -1;
 	}
@@ -96,7 +103,7 @@ int get_dek_blob_offset(ulong addr, u32 *offset)
 		return -1;
 	}
 	dek_blob_addr = get_blob_addr_from_container(container_addr);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		return -1;
 	}
@@ -174,7 +181,7 @@ int get_dek_blob(ulong addr, u32 *size)
 	/* Recover the DEK blob and copy to 'addr' */
 	dek_blob_addr =
 	    get_blob_addr_from_container((ulong) buf + CONTAINER_HDR_ALIGNMENT);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		ret = -1;
 		goto sanitize;
