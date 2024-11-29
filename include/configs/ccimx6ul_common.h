@@ -19,11 +19,6 @@
 #define DIGI_IMX_FAMILY
 #define CONFIG_SOM_DESCRIPTION		"ConnectCore 6UL"
 
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-#define CONFIG_REVISION_TAG
-
 /*
  * RAM
  */
