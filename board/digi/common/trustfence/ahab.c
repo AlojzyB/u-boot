@@ -15,18 +15,25 @@
 extern int mmc_get_bootdevindex(void);
 
 /*
- * Get next AHAB container address after 'addr'
+ * Get next AHAB container address after the given 'addr'.
+ *
+ * Return AHAB container address on success or 0 on failure
  */
 static ulong get_next_container_addr(ulong addr)
 {
 	struct container_hdr *phdr;
 	struct boot_img_t *img_entry;
 
+	if (!addr) {
+		printf("Error: Invalid container address (NULL).\n");
+		return 0;
+	}
+
 	phdr = (struct container_hdr *)(addr);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong base container header\n", __func__);
-		return -1;
+		return 0;
 	}
 
 	img_entry = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
@@ -34,13 +41,13 @@ static ulong get_next_container_addr(ulong addr)
 	phdr =
 	    (struct container_hdr *)ROUND(addr + img_entry->offset +
 					  img_entry->size, SZ_1K);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong next container header\n", __func__);
-		return -1;
+		return 0;
 	}
 
-	return (ulong) phdr;
+	return (ulong)phdr;
 }
 
 /*
@@ -99,7 +106,7 @@ int get_dek_blob_offset(ulong addr, u32 *offset)
 	/* Jump to third container */
 	debug("== Third AHAB container.\n");
 	container_addr = get_next_container_addr(container_addr);
-	if (container_addr < 0) {
+	if (!container_addr) {
 		printf("Failed to get third container address.\n");
 		return -1;
 	}
