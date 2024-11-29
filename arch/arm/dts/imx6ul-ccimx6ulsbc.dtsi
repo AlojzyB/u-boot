@@ -17,6 +17,7 @@
 	aliases {
 		ethernet1 = &fec1;
 		ethernet0 = &fec2;
+		mmc0 = &usdhc2;
 	};
 
 	lcd_backlight: backlight {
