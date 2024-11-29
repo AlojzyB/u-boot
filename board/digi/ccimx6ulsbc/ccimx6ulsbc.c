@@ -170,55 +170,11 @@ int board_mmc_init(struct bd_info *bis)
 #endif /* CONFIG_FSL_ESDHC_IMX */
 
 #ifdef CONFIG_FEC_MXC
-void reset_phy(void)
-{
-	int reset;
-	const char *ethprime;
-
-	/*
-	 * The reset line must be held low for a minimum of 100usec and cannot
-	 * be deasserted before 25ms have passed since the power supply has
-	 * reached 80% of the operating voltage. At this point of the code
-	 * we can assume the second premise is already accomplished.
-	 */
-	ethprime = env_get("ethprime");
-	if (ethprime == NULL) {
-		printf("Error: Could not reset PHY, 'ethprime' not configured\n");
-		return;
-	}
-
-	if (!strcmp(ethprime, "eth0")) {
-		/* MCA_IO7 is connected to PHY reset */
-		reset = (1 << 7);
-		/* Configure as output */
-		mca_update_bits(MCA_GPIO_DIR_0, reset, reset);
-		/* Assert PHY reset (low) */
-		mca_update_bits(MCA_GPIO_DATA_0, reset, 0);
-		udelay(100);
-		/* Deassert PHY reset (high) */
-		mca_update_bits(MCA_GPIO_DATA_0, reset, reset);
-	} else if (!strcmp(ethprime, "eth1")) {
-		/* CPU GPIO5_6 is connected to PHY reset */
-		reset = IMX_GPIO_NR(5, 6);
-		/* Assert PHY reset (low) */
-		gpio_request(reset, "ENET PHY Reset");
-		gpio_direction_output(reset, 0);
-		udelay(100);
-		/* Deassert PHY reset (high) */
-		gpio_set_value(reset, 1);
-	} else {
-		printf("Error: Could not reset PHY, 'ethprime' has unknown value '%s'\n",
-		       ethprime);
-	}
-}
-
 int board_phy_config(struct phy_device *phydev)
 {
 	if (phydev->drv->config) {
 		phydev->drv->config(phydev);
 	}
-
-	reset_phy();
 
 	return 0;
 }

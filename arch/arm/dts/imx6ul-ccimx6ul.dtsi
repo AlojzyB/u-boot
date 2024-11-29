@@ -34,6 +34,7 @@
 	mca_gpio_uboot: mca_gpio {
 		compatible = "digi,mca-gpio";
 		gpio-controller;
+		#gpio-cells = <2>;
 	};
 
 	mca_rtc_uboot: mca_rtc {

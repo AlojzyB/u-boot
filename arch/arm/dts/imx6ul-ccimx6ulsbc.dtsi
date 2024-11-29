@@ -99,7 +99,7 @@
 	pinctrl-0 = <&pinctrl_enet1>, <&pinctrl_enet1_gpio>;
 	phy-mode = "rmii";
 	phy-handle = <&ethphy0>;
-	phy-reset-gpios = <&mca_gpio 7 GPIO_ACTIVE_LOW>;
+	phy-reset-gpios = <&mca_gpio_uboot 7 GPIO_ACTIVE_LOW>;
 	phy-reset-duration = <26>;
 	digi,phy-reset-in-suspend;
 	status = "disabled";
