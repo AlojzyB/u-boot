@@ -230,7 +230,7 @@ void hwid_get_serial_number(const struct digi_hwid *hwid)
 	if (hwid->year == 0)
 		return;
 
-#ifdef CONFIG_DIGI_FAMILY_ID
+#if (CONFIG_DIGI_FAMILY_ID != 0)
 	int week_month = hwid->week;
 #ifdef CONFIG_CC8X
 	/* If the week is not defined, print the month */
