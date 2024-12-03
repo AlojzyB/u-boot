@@ -125,6 +125,8 @@
 
 &usbotg1 {
 	dr_mode = "host";
+	pinctrl-names = "default";
+	pinctrl-0 = <>;
 	power-active-high;
 	disable-over-current;
 	status = "disabled";
