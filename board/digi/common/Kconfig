@@ -204,3 +204,6 @@ config FIT_CFGS_PREFIX
 	default "conf-"
 	help
 	  Prefix for the names of the configurations in the FIT image.
+
+config DDR_DUAL_DIE
+	bool "Dual Die DDR populated"
