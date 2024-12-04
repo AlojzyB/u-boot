@@ -20,6 +20,7 @@
 #include <asm/io.h>
 #include <command.h>
 #include <common.h>
+#include <dm.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
@@ -301,6 +302,20 @@ void ldo_mode_set(int ldo_bypass)
 #endif
 #endif
 
+#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
+static __maybe_unused void setup_caam(void)
+{
+	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
+		struct udevice *dev;
+		int ret;
+
+		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
+		if (ret)
+			printf("Failed to initialize caam_jr: %d\n", ret);
+	}
+}
+#endif
+
 int ccimx6ul_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
@@ -334,6 +349,16 @@ int ccimx6ul_init(void)
 	} else {
 		rng_swtest_status = SW_RNG_TEST_NA;
 	}
+
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
+	/*
+	 * Initialize CAAM at an early stage, before the environment is first loaded,
+	 * so it can be decrypted on the fly.
+	 *
+	 * Originally initialized at 'int arch_misc_init(void)'.
+	 */
+	setup_caam();
+#endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 	/* Address of boot parameters */
