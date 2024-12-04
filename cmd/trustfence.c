@@ -80,7 +80,7 @@ extern int rng_swtest_status;
  */
  /* TODO: also CONFIG_CC6 but still not migrated */
 #if defined(CONFIG_CC6UL)
-__weak int get_dek_blob(char *output, u32 *size)
+__weak int get_dek_blob(ulong addr, u32 *size)
 {
 	struct ivt *ivt = (struct ivt *)UBOOT_START_ADDR;
 
@@ -106,7 +106,7 @@ __weak int get_dek_blob(char *output, u32 *size)
 
 		if (blob_size > 0) {
 			*size = blob_size;
-			memcpy(output, dek_blob, blob_size);
+			memcpy((void *)addr, (void *)dek_blob, blob_size);
 			return 0;
 		}
 	}
