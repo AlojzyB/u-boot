@@ -18,6 +18,7 @@
 #if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
 	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
 #include <asm/arch/clock.h>
+#include <asm/arch/imx-regs.h>
 #endif
 #endif
 
