@@ -15,11 +15,6 @@
 
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
 #include <fsl_sec.h>
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-#include <asm/arch/clock.h>
-#include <asm/arch/imx-regs.h>
-#endif
 #endif
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
@@ -82,14 +77,6 @@ int env_aes_cbc_crypt(env_t * env, const int enc)
 		goto freesrc;
 	}
 	memcpy(src_ptr, data, ENV_SIZE);
-
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-	hab_caam_clock_enable(1);
-	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR + FSL_CAAM_ORSR_JRa_OFFSET);
-	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
-		sec_init();
-#endif
 
 	if (enc)
 		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
