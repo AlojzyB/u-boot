@@ -180,6 +180,32 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
+		return
+	fi
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${SRK_REVOKE_MASK}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} SRK_REVOKE_MASK=${SRK_REVOKE_MASK}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+		for rev in B0 C0; do
+			echo "- Sign and encrypt imx-boot binary for: ${SOC} (${rev})"
+			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8x-sbc-${SBC}-${rev}-flash_spl.log"
+			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-signed-ccimx8x-sbc-${SBC}-${rev}.bin
+			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-encrypted-ccimx8x-sbc-${SBC}-${rev}.bin
+		done
+	)
+
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTNAME="$(basename "${0}")"
@@ -215,6 +241,8 @@ UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
 SBC="pro"
 echo "${SCRIPTNAME}" | grep -qs express && SBC="express"
 
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_ahab.sh"
+
 # Parse command line arguments
 while [ "${1}" != "" ]; do
 	case ${1} in
@@ -238,3 +266,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot
