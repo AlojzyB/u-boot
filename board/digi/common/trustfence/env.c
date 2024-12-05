@@ -26,9 +26,9 @@
  * so make it AES block length size. It also matches the MD5 hash
  * size (16) we use to compose the key modifier.
  */
-#define KEY_MODIFER_SIZE	AES_BLOCK_LENGTH
+#define KEY_MODIFIER_SIZE	AES_BLOCK_LENGTH
 
-static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
+static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 {
 	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
 	int i, ret;
@@ -55,7 +55,7 @@ int env_crypt(env_t * env, const int enc)
 		return 0;
 
 	/* Buffers must be aligned */
-	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);
 	if (!key_mod) {
 		debug("Not enough memory to encrypt the environment\n");
 		return -ENOMEM;
@@ -112,7 +112,7 @@ int env_crypt(env_t * env, const int enc)
 	if (!imx_hab_is_enabled())
 		return 0;
 
-	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);
 	if (!key_mod) {
 		debug("Not enough memory for key modifier\n");
 		return -ENOMEM;
