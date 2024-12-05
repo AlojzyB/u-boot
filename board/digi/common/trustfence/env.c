@@ -78,10 +78,13 @@ int env_aes_cbc_crypt(env_t * env, const int enc)
 	}
 	memcpy(src_ptr, data, ENV_SIZE);
 
-	if (enc)
+	if (enc) {
+		printf("Encrypting... ");
 		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
-	else
+	} else {
+		printf("Decrypting... ");
 		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
+	}
 
 	if (ret)
 		goto err;
@@ -118,6 +121,7 @@ int env_aes_cbc_crypt(env_t * env, const int enc)
 	if (ret)
 		goto freekm;
 
+	printf("%s", enc ? "Encrypting... " : "Decrypting... ");
 	ret = optee_crypt_data(enc, key_mod, data, ENV_SIZE);
 
 freekm:
