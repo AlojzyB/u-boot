@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 by Digi International Inc.
+ *  Copyright (C) 2016-2025, Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -11,16 +11,14 @@
 #define TRUSTFENCE_H
 
 #ifdef CONFIG_HAS_TRUSTFENCE
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-int console_enable_gpio(const char *name);
-#endif
-#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
-int console_enable_passphrase(void);
-#endif
 
 int is_uboot_encrypted(void);
 void copy_dek(void);
 void copy_spl_dek(void);
+
+#ifdef CONFIG_CONSOLE_DISABLE
+#include "trustfence/console.h"
+#endif
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 void fdt_fixup_trustfence(void *fdt);
