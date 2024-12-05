@@ -34,6 +34,7 @@ obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
 obj-$(CONFIG_ENV_ENCRYPT) += trustfence/env.o
 obj-$(CONFIG_OPTEE_ENV_ENCRYPT) += trustfence/aes_tee.o
 obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
+obj-$(CONFIG_TRUSTFENCE_JTAG) += trustfence/jtag.o
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o

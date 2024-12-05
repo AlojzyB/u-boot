@@ -19,6 +19,9 @@ void copy_spl_dek(void);
 #ifdef CONFIG_CONSOLE_DISABLE
 #include "trustfence/console.h"
 #endif
+#ifdef CONFIG_TRUSTFENCE_JTAG
+#include "trustfence/jtag.h"
+#endif
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 void fdt_fixup_trustfence(void *fdt);
