@@ -7,6 +7,6 @@
 #ifndef TF_ENV_H
 #define TF_ENV_H
 
-int env_aes_cbc_crypt(env_t *env, const int enc);
+int env_crypt(env_t *env, const int enc);
 
 #endif /* TF_ENV_H */

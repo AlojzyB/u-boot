@@ -45,7 +45,7 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
 }
 
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
-int env_aes_cbc_crypt(env_t * env, const int enc)
+int env_crypt(env_t * env, const int enc)
 {
 	unsigned char *data = env->data;
 	int ret = 0;
@@ -103,7 +103,7 @@ freekm:
 #endif
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
-int env_aes_cbc_crypt(env_t * env, const int enc)
+int env_crypt(env_t * env, const int enc)
 {
 	uint8_t *data = env->data;
 	uint8_t *key_mod;
