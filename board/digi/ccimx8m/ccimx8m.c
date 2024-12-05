@@ -15,6 +15,7 @@
 #include <spl.h>
 
 #include "../common/hwid.h"
+#include "../common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

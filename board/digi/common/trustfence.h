@@ -11,10 +11,7 @@
 #define TRUSTFENCE_H
 
 #ifdef CONFIG_HAS_TRUSTFENCE
-
-int is_uboot_encrypted(void);
-void copy_dek(void);
-void copy_spl_dek(void);
+#include "trustfence/encryption.h"
 
 #ifdef CONFIG_CONSOLE_DISABLE
 #include "trustfence/console.h"
