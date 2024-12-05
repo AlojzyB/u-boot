@@ -11,6 +11,7 @@
 #define TRUSTFENCE_H
 
 #ifdef CONFIG_HAS_TRUSTFENCE
+#include "trustfence/boot.h"
 #include "trustfence/encryption.h"
 
 #ifdef CONFIG_CONSOLE_DISABLE
@@ -20,10 +21,4 @@
 #include "trustfence/jtag.h"
 #endif
 #endif /* CONFIG_HAS_TRUSTFENCE */
-
-void fdt_fixup_trustfence(void *fdt);
-
-/* platform specific Trustfence support*/
-int trustfence_status(void);
-
 #endif /* TRUSTFENCE_H */
