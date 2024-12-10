@@ -207,3 +207,15 @@ config FIT_CFGS_PREFIX
 
 config DDR_DUAL_DIE
 	bool "Dual Die DDR populated"
+
+config ANDROID_LOAD_CONNECTCORE_FDT
+	bool "Load the device tree blob and overlays from environment variables"
+	depends on ANDROID_SUPPORT
+	select OF_LIBFDT_OVERLAY
+	help
+	  On Android, this option enables loading the main device tree blob and
+	  its overlays from the DTBO partition, based on the content of environment
+	  variables.
+
+	  U-Boot automatically populates the environment variable
+	  (som_overlays) based on the platform.
