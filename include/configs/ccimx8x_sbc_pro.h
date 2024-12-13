@@ -19,9 +19,6 @@
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
 
-/* Fastboot */
-#define PRODUCT_NAME			"ccimx8xsbcpro"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
-
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID

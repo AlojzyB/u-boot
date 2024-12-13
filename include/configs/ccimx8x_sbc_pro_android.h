@@ -3,20 +3,20 @@
 
 #define CONFIG_USB_GADGET_VBUS_DRAW	2
 
-/* Disable some configs not needed for Android */
 #undef CONFIG_BOOTCOMMAND
-#undef CONFIG_FSL_CAAM_KB
+
+#define CFG_SYS_SPL_PTE_RAM_BASE 0x801F8000
 
 #ifdef CONFIG_IMX_TRUSTY_OS
-#define AVB_RPMB
 #define NS_ARCH_ARM64 1
 #define KEYSLOT_HWPARTITION_ID   2
 #define KEYSLOT_BLKS             0x3FFF
+#define AVB_RPMB
 
-#ifdef CONFIG_SPL_BUILD
-#undef CONFIG_BLK
-#define CONFIG_FSL_CAAM_KB
-#endif
+#define BOOTLOADER_RBIDX_OFFSET  0x3FE000
+#define BOOTLOADER_RBIDX_START   0x3FF000
+#define BOOTLOADER_RBIDX_LEN     0x08
+#define BOOTLOADER_RBIDX_INITVAL 0
 #endif
 
 #endif /* CCIMX8X_SBC_PRO_ANDROID_H */

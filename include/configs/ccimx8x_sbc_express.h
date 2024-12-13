@@ -18,10 +18,6 @@
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
 
-/* Fastboot */
-#define CONFIG_SERIAL_TAG
-#define PRODUCT_NAME			"ccimx8xsbcexpress"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
-
 /* USB Config */
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 2

@@ -36,8 +36,6 @@
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
 
-#define CONFIG_FSL_CAAM_KB
-
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_BANK			0
 #define CONFIG_TRUSTFENCE_SRK_WORDS			16
