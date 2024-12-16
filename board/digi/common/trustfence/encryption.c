@@ -95,14 +95,6 @@ void copy_dek(void)
 	get_dek_blob(dek_blob_dst, &dek_size);
 }
 
-void copy_spl_dek(void)
-{
-	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	ulong dek_blob_dst = loadaddr - (2 * BLOB_DEK_OFFSET);
-
-	get_dek_blob(dek_blob_dst, NULL);
-}
-
 int is_uboot_encrypted(void) {
 	char dek_blob[MAX_DEK_BLOB_SIZE];
 	u32 dek_blob_size;
