@@ -13,5 +13,6 @@ void fdt_fixup_trustfence(void *fdt);
 int sense_key_status(u32 *val);
 int close_device(int confirmed);
 int trustfence_status(void);
+bool trustfence_is_closed(void);
 
 #endif /* TF_BOOT_H */

@@ -26,7 +26,7 @@
 #ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 #include "../board/digi/common/auth.h"
 #if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
-#include <asm/mach-imx/hab.h>
+#include "../board/digi/common/trustfence.h"
 #endif
 static int authenticated = 0;
 #endif
@@ -535,7 +535,7 @@ int boot_get_ramdisk(char const *select, struct bootm_headers *images,
 
 #ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
 #if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
-	if (rd_data && imx_hab_is_enabled() && !authenticated) {
+	if (rd_data && trustfence_is_closed() && !authenticated) {
 		printf("Ramdisk authentication is not supported\n");
 		return 1;
 	}

@@ -7,7 +7,6 @@
 #include <common.h>
 #include <fdt_support.h>
 #include <fuse.h>
-#include <asm/mach-imx/hab.h>
 #include <mapmem.h>
 
 #include "../helper.h"
@@ -69,7 +68,7 @@ __weak int fuse_prog_srk(u32 addr, u32 size)
 void fdt_fixup_trustfence(void *fdt)
 {
 	/* Environment encryption is not enabled on open devices */
-	if (!imx_hab_is_enabled()) {
+	if (!trustfence_is_closed()) {
 		do_fixup_by_path(fdt, "/", "digi,tf-open", NULL, 0, 1);
 		return;
 	}
@@ -89,3 +88,5 @@ __weak int sense_key_status(u32 * val) { return -1; }
 __weak int close_device(int confirmed) { return -1; }
 
 __weak int trustfence_status(void)  { return -1; }
+
+__weak bool trustfence_is_closed(void) { return false; }

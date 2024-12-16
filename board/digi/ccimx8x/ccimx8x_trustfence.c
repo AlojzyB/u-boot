@@ -19,6 +19,19 @@ extern void calculate_uboot_update_settings(struct blk_desc *mmc_dev,
 				     struct disk_partition *info);
 extern int mmc_get_bootdevindex(void);
 
+bool trustfence_is_closed(void)
+{
+	sc_err_t err;
+	uint16_t lc;
+
+	err = sc_seco_chip_info(-1, &lc, NULL, NULL, NULL);
+	if (err != SC_ERR_NONE) {
+		printf("Error in get lifecycle\n");
+		return true;
+	}
+
+	return ((lc & 0x80) == 0x80);
+}
 
 int close_device(int confirmed_close)
 {

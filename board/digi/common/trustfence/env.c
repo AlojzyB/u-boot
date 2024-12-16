@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
-#include <asm/mach-imx/hab.h>
 #include <dm.h>
 #include <errno.h>
 #include <fuse.h>
@@ -21,6 +20,7 @@
 #include "aes_tee.h"
 #endif
 
+#include "boot.h"
 #include "env.h"
 
 /*
@@ -63,7 +63,7 @@ int env_crypt(env_t * env, const int enc)
 	int ret = 0;
 	uint8_t *src_ptr, *dst_ptr, *key_mod;
 
-	if (!imx_hab_is_enabled())
+	if (!trustfence_is_closed())
 		return 0;
 
 	/* Buffers must be aligned */
@@ -121,7 +121,7 @@ int env_crypt(env_t * env, const int enc)
 	uint8_t *key_mod;
 	int ret = 0;
 
-	if (!imx_hab_is_enabled())
+	if (!trustfence_is_closed())
 		return 0;
 
 	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);

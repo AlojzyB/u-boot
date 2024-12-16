@@ -122,6 +122,11 @@ __weak int get_dek_blob_size(ulong addr, u32 *size)
 	return -1;
 }
 
+bool trustfence_is_closed(void)
+{
+	return imx_hab_is_enabled();
+}
+
 /*
  * For secure OS, we want to have the DEK blob in a common absolute
  * memory address, so that there are no dependencies between the CSF

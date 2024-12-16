@@ -58,7 +58,7 @@ int close_device(int confirmed_close)
 	return 0;
 }
 
-bool imx_hab_is_enabled(void)
+bool trustfence_is_closed(void)
 {
 	uint32_t lc;
 

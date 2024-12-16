@@ -23,7 +23,6 @@
 #include <common.h>
 #include <command.h>
 #include <fuse.h>
-#include <asm/mach-imx/hab.h>
 #include <memalign.h>
 
 #include "../board/digi/common/helper.h"
@@ -54,7 +53,7 @@ static int do_trustfence_status(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		puts("[ERROR]\n");
 	}
 
-	printf("* Secure boot:\t\t%s", imx_hab_is_enabled() ?
+	printf("* Secure boot:\t\t%s", trustfence_is_closed() ?
 		"[CLOSED]\n" : "[OPEN]\n");
 	trustfence_status();
 
