@@ -14,6 +14,9 @@
 #include "trustfence/boot.h"
 #include "trustfence/encryption.h"
 
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "trustfence/auth.h"
+#endif
 #ifdef CONFIG_AHAB_BOOT
 #include "trustfence/ahab.h"
 #endif

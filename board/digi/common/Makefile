@@ -30,14 +30,16 @@ obj-$(CONFIG_CMD_UPDATE_NAND) += helper.o
 obj-$(CONFIG_CMD_DBOOT) += helper.o
 obj-$(CONFIG_CMD_DIGI_PMIC) += cmd_pmic.o
 obj-$(CONFIG_MCA_TAMPER) += tamper.o
+ifdef CONFIG_HAS_TRUSTFENCE
+obj-y += trustfence/boot.o trustfence/encryption.o
 obj-$(CONFIG_IMX_HAB) += trustfence/hab.o
 obj-$(CONFIG_AHAB_BOOT) += trustfence/ahab.o
-obj-$(CONFIG_AUTH_ARTIFACTS) += auth.o
+obj-$(CONFIG_AUTH_ARTIFACTS) += trustfence/auth.o
 obj-$(CONFIG_ENV_ENCRYPT) += trustfence/env.o
 obj-$(CONFIG_OPTEE_ENV_ENCRYPT) += trustfence/aes_tee.o
 obj-$(CONFIG_CONSOLE_DISABLE) += trustfence/console.o
 obj-$(CONFIG_TRUSTFENCE_JTAG) += trustfence/jtag.o
-obj-$(CONFIG_HAS_TRUSTFENCE) += trustfence/boot.o trustfence/encryption.o
+endif
 endif
 obj-$(CONFIG_HAS_HWID) += hwid.o
 obj-$(CONFIG_MCA) += mca.o

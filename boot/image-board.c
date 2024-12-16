@@ -24,10 +24,7 @@
 #include <asm/global_data.h>
 
 #ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
-#include "../board/digi/common/auth.h"
-#if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
 #include "../board/digi/common/trustfence.h"
-#endif
 static int authenticated = 0;
 #endif
 

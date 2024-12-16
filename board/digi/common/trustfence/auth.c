@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2020 Digi International, Inc.
+ * (C) Copyright 2020-2025, Digi International Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -22,14 +22,12 @@
 
 #include <common.h>
 #include <env.h>
-#ifdef CONFIG_IMX_HAB
-#include <asm/mach-imx/hab.h>
-#endif
 #ifdef CONFIG_AHAB_BOOT
 #include <imx_container.h>
-#include "./trustfence/ahab.h"
+#include "ahab.h"
 extern int authenticate_os_container(ulong addr);
 #endif
+#include "auth.h"
 
 #if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 /*
