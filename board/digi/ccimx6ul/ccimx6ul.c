@@ -16,7 +16,6 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
-#include <asm/mach-imx/hab.h>
 #include <asm/io.h>
 #include <command.h>
 #include <common.h>
@@ -43,9 +42,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 static struct digi_hwid my_hwid;
-#ifdef CONFIG_HAS_TRUSTFENCE
-extern int rng_swtest_status;
-#endif
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -319,37 +315,7 @@ static __maybe_unused void setup_caam(void)
 int ccimx6ul_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
-	uint32_t ret;
-	uint8_t event_data[36] = { 0 }; /* Event data buffer */
-	size_t bytes = sizeof(event_data); /* Event size in bytes */
-	enum hab_config config = 0;
-	enum hab_state state = 0;
-	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
-
-	/* HAB event verification */
-	ret = hab_report_status(&config, &state);
-	if (ret == HAB_WARNING) {
-		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
-		       config, state);
-		/* Verify RNG self test */
-		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
-		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
-			printf("RNG:   self-test failed, but software test passed.\n");
-		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
-#ifdef CONFIG_RNG_SELF_TEST
-			printf("WARNING: RNG self-test and software test failed!\n");
-#else
-			printf("WARNING: RNG self-test failed!\n");
-#endif
-			if (imx_hab_is_enabled()) {
-				printf("Aborting secure boot.\n");
-				run_command("reset", 0);
-			}
-		}
-	} else {
-		rng_swtest_status = SW_RNG_TEST_NA;
-	}
-
+	hab_verification();
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
 	/*
 	 * Initialize CAAM at an early stage, before the environment is first loaded,
