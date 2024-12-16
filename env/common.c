@@ -25,9 +25,7 @@
 #include <net.h>
 #include <watchdog.h>
 
-#ifdef CONFIG_ENV_ENCRYPT
-#include "../board/digi/common/trustfence/env.h"
-#endif
+#include "../board/digi/common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

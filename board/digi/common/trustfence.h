@@ -20,7 +20,9 @@
 #ifdef CONFIG_IMX_HAB
 #include "trustfence/hab.h"
 #endif
-
+#ifdef CONFIG_ENV_ENCRYPT
+#include "trustfence/env.h"
+#endif
 #ifdef CONFIG_CONSOLE_DISABLE
 #include "trustfence/console.h"
 #endif

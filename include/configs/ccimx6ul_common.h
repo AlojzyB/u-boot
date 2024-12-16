@@ -96,6 +96,7 @@
 #define CONFIG_EXTRA_NETWORK_SETTINGS \
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
+#undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\

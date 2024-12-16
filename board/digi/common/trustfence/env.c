@@ -5,7 +5,7 @@
  */
 
 #include <asm/mach-imx/hab.h>
-#include <env_internal.h>
+#include <dm.h>
 #include <errno.h>
 #include <fuse.h>
 #include <linux/kernel.h>
@@ -20,6 +20,8 @@
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
 #include "aes_tee.h"
 #endif
+
+#include "env.h"
 
 /*
  * We use the key modifier as initialization vector (IV) for AES,
@@ -45,6 +47,16 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 }
 
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
+void setup_caam(void)
+{
+	struct udevice *dev;
+	int ret =
+	    uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr),
+					&dev);
+	if (ret)
+		printf("Failed to initialize caam_jr: %d\n", ret);
+}
+
 int env_crypt(env_t * env, const int enc)
 {
 	unsigned char *data = env->data;

@@ -298,20 +298,6 @@ void ldo_mode_set(int ldo_bypass)
 #endif
 #endif
 
-#if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
-static __maybe_unused void setup_caam(void)
-{
-	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
-		struct udevice *dev;
-		int ret;
-
-		ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr), &dev);
-		if (ret)
-			printf("Failed to initialize caam_jr: %d\n", ret);
-	}
-}
-#endif
-
 int ccimx6ul_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE

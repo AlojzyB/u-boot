@@ -82,16 +82,6 @@ static void setup_iomux_uart(void)
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
 }
 
-static __maybe_unused void setup_caam(void)
-{
-	struct udevice *dev;
-	int ret =
-	    uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr),
-					&dev);
-	if (ret)
-		printf("Failed to initialize caam_jr: %d\n", ret);
-}
-
 int board_early_init_r(void)
 {
 #if defined(CONFIG_HAS_TRUSTFENCE) && defined(CONFIG_CAAM_ENV_ENCRYPT)
