@@ -14,6 +14,13 @@
 #include "trustfence/boot.h"
 #include "trustfence/encryption.h"
 
+#ifdef CONFIG_AHAB_BOOT
+#include "trustfence/ahab.h"
+#endif
+#ifdef CONFIG_IMX_HAB
+#include "trustfence/hab.h"
+#endif
+
 #ifdef CONFIG_CONSOLE_DISABLE
 #include "trustfence/console.h"
 #endif

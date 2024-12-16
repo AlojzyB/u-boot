@@ -274,3 +274,13 @@ bool is_container_encrypted(ulong addr, ulong *dek_addr)
 err_out:
 	return is_encrypted;
 }
+
+__weak int revoke_keys(void)
+{
+	return -1;
+}
+
+__weak int get_srk_revoke_mask(u32 *mask)
+{
+	return -1;
+}

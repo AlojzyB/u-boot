@@ -102,6 +102,19 @@ void board_print_trustfence_jtag_key(u32 *sjc)
 	return;
 }
 
+int sense_key_status(u32 *val)
+{
+	if (fuse_sense(CONFIG_TRUSTFENCE_SRK_REVOKE_BANK,
+			CONFIG_TRUSTFENCE_SRK_REVOKE_WORD,
+			val))
+		return -1;
+
+	*val = (*val >> CONFIG_TRUSTFENCE_SRK_REVOKE_OFFSET) &
+		CONFIG_TRUSTFENCE_SRK_REVOKE_MASK;
+
+	return 0;
+}
+
 /* Read the SRK Revoke mask from the Container header */
 int get_srk_revoke_mask(u32 *mask)
 {

@@ -10,14 +10,6 @@
 /* Header (8) + BKEK (32) + MAC (16) + MAX_KEY_SIZE (256 bits) */
 #define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
 
-#ifdef CONFIG_IMX_HAB
-int get_dek_blob_offset(ulong addr, u32 *offset);
-int get_dek_blob_size(ulong addr, u32 *size);
-int get_dek_blob(ulong addr, u32 *size);
-void copy_dek(void);
-void copy_spl_dek(void);
-#endif /* CONFIG_IMX_HAB */
-
 int is_uboot_encrypted(void);
 
 #endif /* TF_ENCRYPTION_H */
