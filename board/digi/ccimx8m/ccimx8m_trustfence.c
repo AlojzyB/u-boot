@@ -22,7 +22,7 @@
 
 #define BLOB_DEK_OFFSET		0x100
 
-int get_dek_blob_offset(char *address, u32 *offset)
+int get_dek_blob_offset(ulong addr, u32 *offset)
 {
 	struct ivt *ivt = (struct ivt *)(CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE);
 
@@ -39,8 +39,10 @@ int get_dek_blob_offset(char *address, u32 *offset)
 	return 0;
 }
 
-int get_dek_blob_size(char *address, u32 *size)
+int get_dek_blob_size(ulong addr, u32 *size)
 {
+	char *address = (char *)addr;
+
 	if (address[3] != HAB_VERSION || address[0] != HAB_AUTH_BLOB_TAG) {
 		debug("Tag does not match as expected\n");
 		return -EINVAL;
@@ -52,7 +54,7 @@ int get_dek_blob_size(char *address, u32 *size)
 	return 0;
 }
 
-int get_dek_blob(char *output, u32 *size)
+int get_dek_blob(ulong addr, u32 *size)
 {
 	/* Get DEK offset */
 	char *dek_blob_src = (void*)(DEK_BLOB_LOAD_ADDR);
@@ -62,7 +64,7 @@ int get_dek_blob(char *output, u32 *size)
 	if (get_dek_blob_size((char *)dek_blob_src, &dek_blob_size))
 		return 1;
 
-	memcpy(output, dek_blob_src, dek_blob_size);
+	memcpy((void *)addr, dek_blob_src, dek_blob_size);
 	*size = dek_blob_size;
 
 	return 0;

@@ -11,10 +11,8 @@
 #define MAX_DEK_BLOB_SIZE	(8 + 32 + 16 + (256 / 8))
 
 #ifdef CONFIG_IMX_HAB
-#ifdef CONFIG_ARCH_IMX8M
-int get_dek_blob_offset(char *address, u32 *offset);
-int get_dek_blob_size(char *address, u32 *size);
-#endif
+int get_dek_blob_offset(ulong addr, u32 *offset);
+int get_dek_blob_size(ulong addr, u32 *size);
 int get_dek_blob(ulong addr, u32 *size);
 void copy_dek(void);
 void copy_spl_dek(void);

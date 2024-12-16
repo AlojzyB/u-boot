@@ -279,7 +279,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		dek_blob_final_dst = loadaddr + dek_blob_offset[1];
 #else
 #ifdef CONFIG_ARCH_IMX8M
-		ret = get_dek_blob_offset((void *)loadaddr, &dek_blob_spl_offset);
+		ret = get_dek_blob_offset(loadaddr, &dek_blob_spl_offset);
 		if (ret != 0) {
 			printf("Error getting the DEK Blob offset (%d)\n", ret);
 			return CMD_RET_FAILURE;
@@ -375,7 +375,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 #else
 #ifdef CONFIG_SPL
 		/* DEK blob will be directly inserted into the U-Boot image */
-		ret = get_dek_blob_offset((void *)uboot_start, &dek_blob_spl_offset);
+		ret = get_dek_blob_offset(uboot_start, &dek_blob_spl_offset);
 		if (ret != 0) {
 			printf("Error getting the SPL DEK Blob offset (%d)\n", ret);
 			return CMD_RET_FAILURE;

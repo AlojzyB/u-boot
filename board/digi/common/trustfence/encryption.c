@@ -78,6 +78,16 @@ __weak int get_dek_blob(ulong addr, u32 *size)
 }
 #endif
 
+__weak int get_dek_blob_offset(ulong addr, u32 *offset)
+{
+	return -1;
+}
+
+__weak int get_dek_blob_size(ulong addr, u32 *size)
+{
+	return -1;
+}
+
 /*
  * For secure OS, we want to have the DEK blob in a common absolute
  * memory address, so that there are no dependencies between the CSF
