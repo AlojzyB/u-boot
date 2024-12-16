@@ -17,10 +17,6 @@
 
 extern int rng_swtest_status;
 
-#ifdef CONFIG_AHAB_BOOT
-extern int get_srk_revoke_mask(u32 *mask);
-#endif
-
 /*
  * Check if all SRK words have been burned.
  *
