@@ -118,7 +118,7 @@
 	"active_system=linux_a\0"
 
 #include <config_distro_bootcmd.h>
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CFG_EXTRA_ENV_SETTINGS \
 	RANDOM_UUIDS \
 	CONFIG_COMMON_ENV \
 	DUALBOOT_ENV_SETTINGS \
