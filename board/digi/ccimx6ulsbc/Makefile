@@ -7,6 +7,7 @@ obj-y  := ccimx6ulsbc.o ../ccimx6ul/ccimx6ul.o
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx6/ccimx6_hwid.o
 endif
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx6/ccimx6_trustfence.o
 
 extra-$(CONFIG_USE_PLUGIN) :=  ../ccimx6ul/plugin.bin
 $(obj)/../ccimx6ul/plugin.bin: $(obj)/../ccimx6ul/plugin.o
