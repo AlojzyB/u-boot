@@ -211,22 +211,16 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	char cmd_buf[CONFIG_SYS_CBSIZE];
 	unsigned long loadaddr = env_get_ulong("loadaddr", 16,
 						CONFIG_SYS_LOAD_ADDR);
-	unsigned long uboot_size;
-	unsigned long dek_size;
-	unsigned long dek_blob_src;
-	unsigned long dek_blob_dst;
-	unsigned long dek_blob_final_dst;
 	unsigned long uboot_start;
+	unsigned long uboot_size;
+	unsigned long dek_start;
+	unsigned long dek_size;
+	unsigned long dek_plain_addr;
+	unsigned long dek_blob_addr;
+	unsigned long dek_blob_spl_dst;
+	unsigned long dek_blob_uboot_dst;
 	u32 dek_blob_size;
-#ifdef CONFIG_AHAB_BOOT
 	u32 dek_blob_offset[2];
-	unsigned long dek_blob_spl_final_dst;
-#endif
-#ifdef CONFIG_ARCH_IMX8M
-	u32 dek_blob_spl_offset;
-	unsigned long dek_blob_spl_final_dst;
-	unsigned long fit_dek_blob_size = 96;
-#endif
 	int generate_dek_blob;
 	uint8_t *buffer = NULL;
 	struct load_fw fwinfo;
@@ -240,7 +234,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 	if (argc < 3)
 		return CMD_RET_USAGE;
 
-	/* Get source of firmware file */
+	/* 1) Copy U-Boot and DEK artifacts into RAM memory */
 	if (get_source(argc, argv, &fwinfo))
 		return CMD_RET_FAILURE;
 
@@ -267,59 +261,20 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		}
 
 		uboot_size = env_get_ulong("filesize", 16, 0);
-#ifdef CONFIG_AHAB_BOOT
-		/* DEK blob will be placed into the Signature Block */
-		ret = get_dek_blob_offset(loadaddr, dek_blob_offset);
-		if (ret != 0) {
-			printf("Error getting the DEK Blob offset (%d)\n", ret);
-			return CMD_RET_FAILURE;
-		}
-		dek_blob_spl_final_dst = loadaddr + dek_blob_offset[0];
-		dek_blob_final_dst = loadaddr + dek_blob_offset[1];
-#else
-#ifdef CONFIG_ARCH_IMX8M
-		ret = get_dek_blob_offset(loadaddr, &dek_blob_spl_offset);
-		if (ret != 0) {
-			printf("Error getting the DEK Blob offset (%d)\n", ret);
-			return CMD_RET_FAILURE;
-		}
-		/* Get SPL dek blob memory locations */
-		dek_blob_spl_final_dst = loadaddr + dek_blob_spl_offset;
-		/* DEK blob will be inserted in the dummy DEK location of the U-Boot image */
-		dek_blob_final_dst = loadaddr + uboot_size - fit_dek_blob_size;
-#else
-		/* DEK blob will be directly appended to the U-Boot image */
-		dek_blob_final_dst = loadaddr + uboot_size;
-#endif // CONFIG_ARCH_IMX8M
-#endif
-		/*
-		 * for the DEK blob source (DEK in plain text) we use the
-		 * first 0x100 aligned memory address
-		 */
-		dek_blob_src = ((loadaddr + uboot_size) & 0xFFFFFF00) + 0x100;
 
-		/*
-		 * DEK destination also needs to be 0x100 aligned. Leave
-		 * 0x400 = 1KiB to fit the DEK source
-		 */
-		dek_blob_dst = dek_blob_src + 0x400;
-
-		debug("loadaddr:           0x%lx\n", loadaddr);
-		debug("uboot_size:         0x%lx\n", uboot_size);
-		debug("dek_blob_src:       0x%lx\n", dek_blob_src);
-		debug("dek_blob_dst:       0x%lx\n", dek_blob_dst);
-		debug("dek_blob_final_dst: 0x%lx\n", dek_blob_final_dst);
-		debug("U-Boot:             [0x%lx,\t0x%lx]\n", loadaddr, loadaddr + uboot_size);
+		/* Place plain DEK and DEK blob in consecutive DMA-aligned regions */
+		dek_plain_addr = loadaddr + DMA_ALIGN_UP(uboot_size);
+		dek_blob_addr = dek_plain_addr + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE);
 
 		printf("\nLoading Data Encryption Key...\n");
 		if ((fwinfo.src == SRC_TFTP || fwinfo.src == SRC_NAND) &&
 			argc >= 5) {
-			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_blob_src,
+			sprintf(cmd_buf, "%s 0x%lx %s", argv[2], dek_plain_addr,
 				argv[4]);
 			generate_dek_blob = 1;
 		} else if (fwinfo.src == SRC_MMC && argc >= 6) {
 			sprintf(cmd_buf, "load mmc %s 0x%lx %s", argv[3],
-				dek_blob_src, argv[5]);
+				dek_plain_addr, argv[5]);
 			generate_dek_blob = 1;
 		} else {
 			generate_dek_blob = 0;
@@ -339,7 +294,7 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		 */
 		uboot_start = simple_strtoul(argv[3], NULL, 16);
 		uboot_size = simple_strtoul(argv[4], NULL, 16);
-		unsigned long dek_start = argc > 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
+		dek_start = argc > 5 ? simple_strtoul(argv[5], NULL, 16) : 0;
 		dek_size = argc > 6 ? simple_strtoul(argv[6], NULL, 16) : 0;
 
 		/*
@@ -360,106 +315,83 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 			return CMD_RET_FAILURE;
 		}
 
-		dek_blob_src = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size));
-		dek_blob_dst = (uintptr_t) (buffer + DMA_ALIGN_UP(uboot_size) + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
-#ifdef CONFIG_AHAB_BOOT
-		/* DEK blob will be placed into the Signature Block */
-		ret = get_dek_blob_offset(uboot_start, dek_blob_offset);
-		if (ret != 0) {
-			printf("Error getting the DEK Blob offset (%d)\n", ret);
-			return CMD_RET_FAILURE;
-		}
-		dek_blob_spl_final_dst = (uintptr_t) (buffer + dek_blob_offset[0]);
-		dek_blob_final_dst = (uintptr_t) (buffer + dek_blob_offset[1]);
-#else
-#ifdef CONFIG_SPL
-		/* DEK blob will be directly inserted into the U-Boot image */
-		ret = get_dek_blob_offset(uboot_start, &dek_blob_spl_offset);
-		if (ret != 0) {
-			printf("Error getting the SPL DEK Blob offset (%d)\n", ret);
-			return CMD_RET_FAILURE;
-		}
-		dek_blob_spl_final_dst = (uintptr_t) (buffer + dek_blob_spl_offset);
-		/* DEK blob will be added to SPL dek blob location */
-		dek_blob_final_dst = (uintptr_t) (buffer + uboot_size - fit_dek_blob_size);
-		debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 4 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
-#else
-		/* DEK blob will be directly appended to the U-Boot image */
-		dek_blob_final_dst = (uintptr_t) (buffer + uboot_size);
-		debug("Buffer:             [0x%p,\t0x%p]\n", buffer, buffer + DMA_ALIGN_UP(uboot_size) + 2 * DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
-#endif // CONFIG_SPL
-#endif
-		debug("dek_blob_src:       0x%lx\n", dek_blob_src);
-		debug("dek_blob_dst:       0x%lx\n", dek_blob_dst);
-		debug("dek_blob_final_dst: 0x%lx\n", dek_blob_final_dst);
-		debug("ARCH_DMA_MINALIGN:  0x%x\n", ARCH_DMA_MINALIGN);
-		debug("dma_(dek_blob):     0x%x\n", DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE));
-		debug("U-Boot:             [0x%p,\t0x%p]\n", buffer, buffer + uboot_size);
+		loadaddr = (uintptr_t) buffer;
 
+		/* Place plain DEK and DEK blob in consecutive DMA-aligned regions */
+		dek_plain_addr = loadaddr + DMA_ALIGN_UP(uboot_size);
+		dek_blob_addr = dek_plain_addr + DMA_ALIGN_UP(MAX_DEK_BLOB_SIZE);
+
+		/* Copy U-Boot and DEK artifacts into aligned buffer */
 		memcpy(buffer, (void *)uboot_start, uboot_size);
 
 		if (dek_start > 0 && dek_size > 0) {
-			memcpy((void *)dek_blob_src, (void *)dek_start, dek_size);
+			memcpy((void *)dek_plain_addr, (void *)dek_start, dek_size);
 			generate_dek_blob = 1;
 		} else {
 			generate_dek_blob = 0;
 		}
-
-		loadaddr = (uintptr_t) buffer;
 	}
+
+	/* 2) Generate DEK blob(s) and position in appropriate address */
+	ret = get_dek_blob_offset(loadaddr, uboot_size, dek_blob_offset);
+	if (ret != 0) {
+		printf("Error getting the DEK Blob offset (%d)\n", ret);
+		return CMD_RET_FAILURE;
+	}
+#ifdef CONFIG_SPL
+	dek_blob_spl_dst = loadaddr + dek_blob_offset[0];
+#endif
+	dek_blob_uboot_dst = loadaddr + dek_blob_offset[1];
+
+	debug("loadaddr:           0x%lx\n", loadaddr);
+	debug("uboot_size:         0x%lx\n", uboot_size);
+	debug("dek_plain_addr:     0x%lx\n", dek_plain_addr);
+	debug("dek_blob_addr:      0x%lx\n", dek_blob_addr);
+	debug("dek_blob_spl_dst:   0x%lx\n", dek_blob_spl_dst);
+	debug("dek_blob_uboot_dst: 0x%lx\n", dek_blob_uboot_dst);
+	debug("U-Boot:             [0x%lx,\t0x%lx]\n", loadaddr, loadaddr + uboot_size);
 
 	/*
 	 * The following if-else block is in charge of appending the
-	 * DEK blob to 'dek_blob_final_dst'.
+	 * DEK blob to its final destination.
 	 */
 	if (generate_dek_blob) {
 		/*
 		 * If generate_dek_blob, then the DEK blob is generated from
-		 * the DEK (at dek_blob_src) and then copied into its final
+		 * the DEK (at dek_plain_addr) and then copied into its final
 		 * destination.
 		 */
 		printf("\nGenerating DEK blob...\n");
 		/* dek_blob takes size in bits */
 		sprintf(cmd_buf, "dek_blob 0x%lx 0x%lx 0x%lx",
-			dek_blob_src, dek_blob_dst, dek_size * 8);
+			dek_plain_addr, dek_blob_addr, dek_size * 8);
 		debug("\tCommand: %s\n", cmd_buf);
 		if (run_command(cmd_buf, 0)) {
 			ret = CMD_RET_FAILURE;
 			goto tf_update_out;
 		}
 
-#ifdef CONFIG_AHAB_BOOT
-		get_dek_blob_size(dek_blob_dst, &dek_blob_size);
-#else
-		/*
-		 * Set dek_size to the size of the DEK blob, that is:
-		 * header (8 bytes) + random AES-256 key (32 bytes)
-		 * + DEK ('dek_size' bytes) + MAC (16 bytes)
-		 */
-		dek_blob_size = 8 + 32 + dek_size + 16;
-#endif
-		/* Copy DEK blob to its final destination */
-		memcpy((void *)dek_blob_final_dst, (void *)dek_blob_dst,
-			dek_blob_size);
-#if defined(CONFIG_SPL)
-		/* Copy SPL DEK blob to its final destination */
-		memcpy((void *)dek_blob_spl_final_dst, (void *)dek_blob_dst,
+		get_dek_blob_size(dek_blob_addr, &dek_blob_size);
+#ifdef CONFIG_SPL
+		memcpy((void *)dek_blob_spl_dst, (void *)dek_blob_addr,
 			dek_blob_size);
 #endif
+		memcpy((void *)dek_blob_uboot_dst, (void *)dek_blob_addr,
+			dek_blob_size);
 	} else {
 		/* If !generate_dek_blob, then the DEK blob from the running
 		 * U-Boot is recovered and copied into its final
 		 * destination. (This fails if the running U-Boot does not
 		 * include a DEK)
 		 */
-#if defined(CONFIG_SPL)
-		if (get_dek_blob(dek_blob_spl_final_dst, &dek_blob_size)) {
+#ifdef CONFIG_SPL
+		if (get_dek_blob(dek_blob_spl_dst, &dek_blob_size)) {
 			printf("Current U-Boot does not contain an SPL DEK, and a new SPL DEK was not provided\n");
 			ret = CMD_RET_FAILURE;
 			goto tf_update_out;
 		}
 #endif
-		if (get_dek_blob(dek_blob_final_dst, &dek_blob_size)) {
+		if (get_dek_blob(dek_blob_uboot_dst, &dek_blob_size)) {
 			printf("Current U-Boot does not contain a DEK, and a new DEK was not provided\n");
 			ret = CMD_RET_FAILURE;
 			goto tf_update_out;
@@ -467,21 +399,17 @@ static int do_trustfence_update(struct cmd_tbl *cmdtp, int flag, int argc, char 
 		printf("Using current DEK\n");
 	}
 
+	/* 3) Program U-Boot+DEK into Flash */
 	printf("\nFlashing U-Boot partition...\n");
-#ifdef CONFIG_AHAB_BOOT
-	sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
-		loadaddr, uboot_size);
-#else
-#ifdef CONFIG_SPL
-	sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
-		loadaddr,
-		uboot_size);
-#else
-	sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx",
-		loadaddr,
-		dek_blob_final_dst + dek_blob_size - loadaddr);
-#endif // CONFIG_SPL
+#if defined(CONFIG_MX6UL)
+	/*
+	 * DEK blob is appended at the end of U-Boot, so consider the size
+	 * increase
+	 */
+	uboot_size += dek_blob_size;
 #endif
+	sprintf(cmd_buf, "update uboot ram 0x%lx 0x%lx", loadaddr, uboot_size);
+
 	debug("\tCommand: %s\n", cmd_buf);
 	env_set("forced_update", "y");
 	ret = run_command(cmd_buf, 0);

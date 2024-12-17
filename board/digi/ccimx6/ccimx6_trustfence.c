@@ -22,6 +22,36 @@
 #endif
 
 /*
+ * Return the offset where the DEK blob must be placed for:
+ * - offset[0] -> SPL
+ * - offset[1] -> U-Boot
+ *
+ * DEK blob will be directly appended to the U-Boot image.
+ */
+int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
+{
+	offset[0] = 0;	/* No SPL*/
+	offset[1] = size;
+
+	return 0;
+}
+
+int get_dek_blob_size(ulong addr, u32 *size)
+{
+	char *address = (char *)addr;
+
+	if (address[0] != HDR_TAG || address[3] != HDR_PAR) {
+		debug("Tag does not match as expected\n");
+		return -EINVAL;
+	}
+
+	*size = address[2];
+	debug("DEK blob size is 0x%04x\n", *size);
+
+	return 0;
+}
+
+/*
  * Copy the DEK blob used by the current U-Boot image into a buffer. Also
  * get its size in the last out parameter.
  * Possible DEK key sizes are 128, 192 and 256 bits.

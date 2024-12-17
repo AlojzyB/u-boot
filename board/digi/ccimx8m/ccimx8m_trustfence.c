@@ -21,8 +21,18 @@
 #define HAB_VERSION		0x43
 
 #define BLOB_DEK_OFFSET		0x100
+#define FIT_DEK_BLOB_SIZE	96
 
-int get_dek_blob_offset(ulong addr, u32 *offset)
+/*
+ * Return the offset where the DEK blob must be placed for:
+ * - offset[0] -> SPL
+ * - offset[1] -> U-Boot
+ *
+ * SPL DEK blob will be directly appended to the CSF block.
+ * U-Boot DEK blob will be inserted in the dummy DEK location
+ * of the U-Boot image.
+ */
+int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 {
 	struct ivt *ivt = (struct ivt *)(CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE);
 
@@ -31,10 +41,11 @@ int get_dek_blob_offset(ulong addr, u32 *offset)
 	   (be16_to_cpu(ivt->hdr.length) != IVT_TOTAL_LENGTH))
 		return 1;
 
-	if (ivt->csf)
-		*offset = ivt->csf - (CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE) + CONFIG_CSF_SIZE;
-	else
-		return 1;
+	if (!ivt->csf)
+		return 1
+
+	offset[0] = ivt->csf - (CONFIG_SPL_TEXT_BASE - SPL_IVT_HEADER_SIZE) + CONFIG_CSF_SIZE;
+	offset[1] = size - FIT_DEK_BLOB_SIZE;
 
 	return 0;
 }

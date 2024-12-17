@@ -112,7 +112,7 @@ __weak int get_dek_blob(ulong addr, u32 *size)
 	return 1;
 }
 
-__weak int get_dek_blob_offset(ulong addr, u32 *offset)
+__weak int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 {
 	return -1;
 }

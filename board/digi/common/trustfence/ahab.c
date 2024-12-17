@@ -89,7 +89,15 @@ static ulong get_blob_addr_from_container(ulong addr)
 	return blob_addr;
 }
 
-int get_dek_blob_offset(ulong addr, u32 *offset)
+/*
+ * Return the offset where the DEK blob must be placed for:
+ * - offset[0] -> SPL
+ * - offset[1] -> U-Boot
+ *
+ * DEK blobs will be placed into the Signature Blocks from
+ * the AHAB containers.
+ */
+int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 {
 	ulong container_addr, dek_blob_addr;
 
