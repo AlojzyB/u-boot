@@ -27,6 +27,11 @@
 #include "ahab.h"
 extern int authenticate_os_container(ulong addr);
 #endif
+#if defined(CONFIG_IMX_HAB)
+#include "hab.h"
+#define BLOB_DEK_OFFSET		0x100
+extern int authenticate_image(uint32_t ddr_start, uint32_t raw_image_size);
+#endif
 #include "auth.h"
 
 #if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
@@ -34,7 +39,8 @@ extern int authenticate_os_container(ulong addr);
  * Authenticate an image in RAM.
  *
  * This function authenticates the given image whether it is performed by
- * HAB or AHAB methods.
+ * HAB or AHAB methods. It is responsible of loading the DEK blob into its
+ * final location to authenticate encrypted images.
  *
  * For AHAB authentication, also increase the given start address to skip the
  * container header, resulting in the start address of the actual image file.
@@ -49,8 +55,17 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size)
 	int ret = 1;
 
 #if defined(CONFIG_IMX_HAB)
-	extern int authenticate_image(uint32_t ddr_start,
-				      uint32_t raw_image_size);
+	ulong dek_addr = CONFIG_SYS_LOAD_ADDR - BLOB_DEK_OFFSET;
+
+	/*
+	 * Load DEK blob to the smallest negative offset that guarantees
+	 * that the DEK blob fits and that it is properly aligned.
+	 */
+	if (get_dek_blob_size(dek_addr, NULL)) {
+		/* No DEK blob on RAM. Get one from u-boot */
+		get_dek_blob(dek_addr, NULL);
+	}
+
 	if (authenticate_image((uint32_t)*ddr_start, raw_image_size) == 0)
 		ret = 0;
 #elif defined(CONFIG_AHAB_BOOT)

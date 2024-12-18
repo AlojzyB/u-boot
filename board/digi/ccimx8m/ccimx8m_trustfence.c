@@ -5,7 +5,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <asm/mach-imx/hab.h>
 
 #include "../common/trustfence.h"
@@ -20,7 +19,6 @@
 #define HAB_AUTH_BLOB_TAG	0x81
 #define HAB_VERSION		0x43
 
-#define BLOB_DEK_OFFSET		0x100
 #define FIT_DEK_BLOB_SIZE	96
 
 /*
@@ -79,12 +77,4 @@ int get_dek_blob(ulong addr, u32 *size)
 	*size = dek_blob_size;
 
 	return 0;
-}
-
-void copy_spl_dek(void)
-{
-	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	ulong dek_blob_dst = loadaddr - (2 * BLOB_DEK_OFFSET);
-
-	get_dek_blob(dek_blob_dst, NULL);
 }

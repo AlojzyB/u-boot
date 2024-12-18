@@ -16,8 +16,6 @@
 #include "encryption.h"
 #include "hab.h"
 
-#define BLOB_DEK_OFFSET		0x100
-
 #define RNG_FAIL_EVENT_SIZE	36
 #define SW_RNG_TEST_FAILED	1
 #define SW_RNG_TEST_PASSED	2
@@ -125,28 +123,6 @@ __weak int get_dek_blob_size(ulong addr, u32 *size)
 bool trustfence_is_closed(void)
 {
 	return imx_hab_is_enabled();
-}
-
-/*
- * For secure OS, we want to have the DEK blob in a common absolute
- * memory address, so that there are no dependencies between the CSF
- * appended to the uImage and the U-Boot image size.
- * This copies the DEK blob into $loadaddr - BLOB_DEK_OFFSET. That is the
- * smallest negative offset that guarantees that the DEK blob fits and that it
- * is properly aligned.
- */
-void copy_dek(void)
-{
-	ulong loadaddr = env_get_ulong("loadaddr", 16, CONFIG_SYS_LOAD_ADDR);
-	ulong dek_blob_dst = loadaddr - BLOB_DEK_OFFSET;
-	u32 dek_size;
-
-	get_dek_blob(dek_blob_dst, &dek_size);
-}
-
-__weak void copy_spl_dek(void)
-{
-	return;
 }
 
 int trustfence_status(void)

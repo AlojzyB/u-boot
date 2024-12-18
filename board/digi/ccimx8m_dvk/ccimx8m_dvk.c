@@ -136,11 +136,6 @@ int board_late_init(void)
 	/* Set default dynamic variables */
 	platform_default_environment();
 
-#ifdef CONFIG_HAS_TRUSTFENCE
-	copy_dek();
-	copy_spl_dek();
-#endif
-
 	return 0;
 }
 

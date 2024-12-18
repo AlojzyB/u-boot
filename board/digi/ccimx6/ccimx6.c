@@ -1541,11 +1541,6 @@ int ccimx6_late_init(void)
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
 #endif
-
-#ifdef CONFIG_HAS_TRUSTFENCE
-	copy_dek();
-#endif
-
 	return ccimx6_fixup();
 }
 
