@@ -984,6 +984,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 #ifdef CONFIG_ANDROID_LOAD_CONNECTCORE_FDT
 	if (connectcore_load_fdt(fdt_addr, dt_img))
 		goto fail;
+	fdt_size = fdt_totalsize((void *)(ulong)fdt_addr);
 #else
 	struct dt_table_entry *dt_entry;
 	dt_entry = (struct dt_table_entry *)((ulong)dt_img +

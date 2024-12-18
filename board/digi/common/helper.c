@@ -1076,9 +1076,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		printf("Failed to set base fdt address to %lx\n", fdt_addr);
 		return -EINVAL;
 	}
-	/* get the right fdt_blob from the global working_fdt */
-	gd->fdt_blob = working_fdt;
-	root_node = fdt_path_offset(gd->fdt_blob, "/");
+	root_node = fdt_path_offset(working_fdt, "/");
 
 	/* Copy the variable to avoid modifying it in memory */
 	env_overlay_list = env_get(overlays_var);
@@ -1122,7 +1120,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		}
 
 		/* Search for an overlay description */
-		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+		overlay_desc = (char *)fdt_getprop(working_fdt, root_node,
 						   "overlay-description", NULL);
 
 		/* Print the overlay filename (and description if available) */
@@ -1130,7 +1128,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		if (overlay_desc) {
 			printf("%s", overlay_desc);
 			/* remove property and reset pointer after printing */
-			fdt_delprop((void *)gd->fdt_blob, root_node,
+			fdt_delprop((void *)working_fdt, root_node,
 				    "overlay-description");
 			overlay_desc = NULL;
 		}
