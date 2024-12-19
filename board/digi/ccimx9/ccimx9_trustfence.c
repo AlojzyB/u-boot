@@ -77,8 +77,9 @@ int trustfence_status(void)
 	u32 cnt = AHAB_MAX_EVENTS;
 	int ret;
 
-	printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted()?
-	       "[YES]" : "[NO]");
+	if (!is_usb_boot())
+		printf("* Encrypted U-Boot:\t%s\n", is_uboot_encrypted()?
+		       "[YES]" : "[NO]");
 	puts("* AHAB events:\t\t");
 	ret = ele_get_events(events, &cnt, NULL);
 	if (ret)
