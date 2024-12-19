@@ -210,6 +210,8 @@
 
 &usbotg1 {
 	bootph-pre-ram;
+	pinctrl-names = "default";
+	pinctrl-0 = <>;
 };
 
 &usbotg3 {
