@@ -60,6 +60,18 @@ struct mm_region stm32mp2_mem_map[MP2_MEM_MAP_MAX] = {
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
 	}, {
+		.virt = 0x80100000,
+		.phys = 0x80100000,
+		.size = 0x00800000,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_NON_SHARE
+	}, {
+		.virt = 0x80A00000,
+		.phys = 0x80A00000,
+		.size = 0x00900000,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_NON_SHARE
+	}, {
 		/*
 		 * DDR = STM32_DDR_BASE / STM32_DDR_SIZE
 		 * the beginning of DDR (before CONFIG_TEXT_BASE) is not
