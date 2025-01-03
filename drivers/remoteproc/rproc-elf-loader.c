@@ -342,7 +342,7 @@ static Elf32_Shdr *rproc_elf32_find_rsc_table(struct udevice *dev,
 		/* make sure table has at least the header */
 		if (sizeof(*table) > size) {
 			pr_debug("header-less resource table\n");
-			return ERR_PTR(-ENOSPC);
+			return ERR_PTR(-ENODATA);
 		}
 
 		/* we don't support any version beyond the first */
