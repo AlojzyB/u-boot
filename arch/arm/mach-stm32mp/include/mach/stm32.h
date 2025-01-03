@@ -187,6 +187,8 @@ enum forced_boot_mode {
 
 /* TAMP registers zone 3 RIF 1 (RW) at 96*/
 #define TAMP_BOOT_CONTEXT		TAMP_BACKUP_REGISTER(96)
+#define TAMP_COPRO_RSC_TBL_ADDRESS	TAMP_BACKUP_REGISTER(97)
+#define TAMP_COPRO_RSC_TBL_SIZE		TAMP_BACKUP_REGISTER(98)
 #endif /* defined(CONFIG_STM32MP21X) || defined(CONFIG_STM32MP23X) || defined(CONFIG_STM32MP25X) */
 
 /* offset used for BSEC driver: misc_read and misc_write */

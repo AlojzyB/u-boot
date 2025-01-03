@@ -59,15 +59,6 @@ static int stm32_copro_probe(struct udevice *dev)
 
 	trproc->proc_id = (u32)dev_get_driver_data(dev);
 
-	if (trproc->proc_id == STM32MP25_M33_FW_ID) {
-		ret = nvmem_cell_get_by_name(dev, "rsc-tbl-addr", &priv->rsc_t_addr_cell);
-		if (ret && ret != -ENODATA)
-			return ret;
-		ret = nvmem_cell_get_by_name(dev, "rsc-tbl-size", &priv->rsc_t_size_cell);
-		if (ret && ret != -ENODATA)
-			return ret;
-	}
-
 	if (device_is_compatible(dev, "st,stm32mp1-m4-tee") ||
 	    device_is_compatible(dev, "st,stm32mp2-m33-tee")) {
 		ret = rproc_optee_open(trproc);
@@ -260,22 +251,11 @@ static int stm32_copro_start(struct udevice *dev)
 		return -EOPNOTSUPP;
 #endif
 	} else if (proc_id == STM32MP25_M33_FW_ID) {
-		/* Store the resource table address and size in 32-bit registers*/
-		ret = nvmem_cell_write(&priv->rsc_t_addr_cell, &priv->rsc_table_addr, sizeof(u32));
-		if (ret)
-			goto error;
-
-		ret = nvmem_cell_write(&priv->rsc_t_size_cell, &priv->rsc_table_size, sizeof(u32));
-		if (ret)
-			goto error;
+		writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
+		writel(priv->rsc_table_size, TAMP_COPRO_RSC_TBL_SIZE);
 	}
 
 	return 0;
-
-error:
-	stm32_copro_stop(dev);
-
-	return ret;
 }
 
 /**
@@ -323,13 +303,8 @@ static int stm32_copro_reset(struct udevice *dev)
 		return -EOPNOTSUPP;
 #endif
 	} else if (proc_id == STM32MP25_M33_FW_ID) {
-		ret = nvmem_cell_write(&priv->rsc_t_addr_cell, &priv->rsc_table_addr, sizeof(u32));
-		if (ret)
-			return ret;
-
-		ret = nvmem_cell_write(&priv->rsc_t_size_cell, &priv->rsc_table_size, sizeof(u32));
-		if (ret)
-			return ret;
+		writel(priv->rsc_table_addr, TAMP_COPRO_RSC_TBL_ADDRESS);
+		writel(priv->rsc_table_size, TAMP_COPRO_RSC_TBL_SIZE);
 	}
 
 	return 0;
