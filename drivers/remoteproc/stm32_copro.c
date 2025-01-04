@@ -10,9 +10,11 @@
 #include <fdtdec.h>
 #include <log.h>
 #include <nvmem.h>
+#include <regmap.h>
 #include <remoteproc.h>
 #include <rproc_optee.h>
 #include <reset.h>
+#include <syscon.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
 #include <linux/err.h>
@@ -42,6 +44,9 @@ struct stm32_copro_privdata {
 	struct nvmem_cell rsc_t_addr_cell;
 	struct nvmem_cell rsc_t_size_cell;
 	struct rproc_optee trproc;
+	struct regmap *syscfg_regmap;
+	u32 nsvtor_offset;
+	u32 nsvtor_mask;
 };
 
 static int stm32_copro_stop(struct udevice *dev);
@@ -80,6 +85,27 @@ static int stm32_copro_probe(struct udevice *dev)
 			dev_err(dev, "failed to get hold boot (%d)\n", ret);
 			return ret;
 		}
+	}
+
+	if (device_is_compatible(dev, "st,stm32mp2-m33")) {
+	priv->syscfg_regmap = syscon_regmap_lookup_by_phandle(dev, "st,syscfg-nsvtor");
+	if (IS_ERR(priv->syscfg_regmap)) {
+		dev_err(dev, "Failed to get st,syscfg-nsvtor property\n");
+		ret = PTR_ERR(priv->syscfg_regmap);
+		return ret;
+	}
+
+	ret = dev_read_u32_index(dev, "st,syscfg-nsvtor", 1, &priv->nsvtor_offset);
+	if (ret) {
+		dev_err(dev, "Failed to get st,syscfg-nsvtor base\n");
+		return ret;
+	}
+
+	ret = dev_read_u32_index(dev, "st,syscfg-nsvtor", 2, &priv->nsvtor_mask);
+	if (ret) {
+		dev_err(dev, "Failed to get st,syscfg-nsvtor mask\n");
+		return ret;
+	}
 	}
 
 	dev_dbg(dev, "probed\n");
@@ -186,12 +212,19 @@ static int stm32_copro_load(struct udevice *dev, ulong addr, ulong size)
 		if (ret != -ENODATA)
 			return ret;
 		dev_dbg(dev, "No resource table for this firmware\n");
+		priv->rsc_table_addr = 0;
+		priv->rsc_table_size = 0;
+	} else {
+		paddr = stm32_copro_device_to_phys(dev, rsc_table_addr, rsc_table_size);
+
+		priv->rsc_table_addr = (ulong)paddr;
+		priv->rsc_table_size = rsc_table_size;
 	}
 
-	paddr = stm32_copro_device_to_phys(dev, rsc_table_addr, rsc_table_size);
-
-	priv->rsc_table_addr = (ulong)paddr;
-	priv->rsc_table_size = rsc_table_size;
+	/* nsvtor now hard-coded at 0x80100000 */
+	/* TODO: get vector addr from elf .isr_vectors table */
+	regmap_update_bits(priv->syscfg_regmap, priv->nsvtor_offset,
+				   priv->nsvtor_mask, 0x80100000);
 
 	return rproc_elf32_load_image(dev, addr, size);
 }
@@ -348,6 +381,7 @@ static const struct dm_rproc_ops stm32_copro_ops = {
 static const struct udevice_id stm32_copro_ids[] = {
 	{ .compatible = "st,stm32mp1-m4", .data = STM32MP15_M4_FW_ID },
 	{ .compatible = "st,stm32mp1-m4-tee", .data = STM32MP15_M4_FW_ID },
+	{ .compatible = "st,stm32mp2-m33", .data = STM32MP25_M33_FW_ID },
 	{ .compatible = "st,stm32mp2-m33-tee", .data = STM32MP25_M33_FW_ID },
 	{}
 };
