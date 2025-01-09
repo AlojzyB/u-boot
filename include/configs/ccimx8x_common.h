@@ -61,7 +61,7 @@
 /* SDRAM1 size is defined based on the HWID. Set here the default fallback value */
 #define PHYS_SDRAM_1_SIZE		SZ_512M
 #else
-#define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned int)SZ_1M)
+#define PHYS_SDRAM_1_SIZE		(CONFIG_DDR_MB * (unsigned long)SZ_1M)
 #endif
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_2_SIZE		0
