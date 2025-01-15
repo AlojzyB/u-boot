@@ -205,9 +205,6 @@ config FIT_CFGS_PREFIX
 	help
 	  Prefix for the names of the configurations in the FIT image.
 
-config DDR_DUAL_DIE
-	bool "Dual Die DDR populated"
-
 config ANDROID_LOAD_CONNECTCORE_FDT
 	bool "Load the device tree blob and overlays from environment variables"
 	depends on ANDROID_SUPPORT
