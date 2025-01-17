@@ -355,7 +355,7 @@ FIRMWARE_IMX="firmware-imx-8.25-27879f8"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-0.1.3-4b30ee5"
+FIRMWARE_ELE="firmware-ele-imx-1.3.0-17945fc"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
