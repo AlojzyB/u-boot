@@ -1,9 +1,11 @@
 From: Javier Viguera <javier.viguera@digi.com>
 Date: Thu, 31 Aug 2023 16:33:13 +0200
-Subject: [PATCH] imx9: soc.mak: capture commands output into a log file
+Subject: [PATCH] imx93: soc.mak: capture commands output into a log file
 
 This is later used to get the needed information for the signing of the
 boot artifacts.
+
+Upstream-Status: Inappropriate [DEY specific]
 
 Signed-off-by: Javier Viguera <javier.viguera@digi.com>
 ---
