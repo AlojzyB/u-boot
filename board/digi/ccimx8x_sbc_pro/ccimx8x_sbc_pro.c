@@ -6,6 +6,7 @@
  */
 #include <common.h>
 #include <fsl_esdhc_imx.h>
+#include <led.h>
 
 #include <asm/global_data.h>
 #include <asm/gpio.h>
@@ -301,32 +302,16 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 
 static int board_power_led_init(void)
 {
-	/* MCA_IO13 is connected to POWER_LED */
-	const char *name = "MCA-GPIO_13";
-	struct gpio_desc desc;
+	struct udevice *dev;
 	int ret;
 
-	ret = dm_gpio_lookup_name(name, &desc);
-	if (ret)
-		goto error;
+	ret = led_get_by_label("power", &dev);
+	if (ret || !dev) {
+		printf("%s: failed to get power LED device\n", __func__);
+		return -ENODEV;
+	}
 
-	ret = dm_gpio_request(&desc, "Power LED");
-	if (ret)
-		goto error;
-
-	ret = dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	if (ret)
-		goto errfree;
-
-	ret = dm_gpio_set_value(&desc, 1);
-	if (ret)
-		goto errfree;
-
-	return 0;
-errfree:
-	dm_gpio_free(NULL, &desc);
-error:
-	return ret;
+	return led_set_state(dev, LEDST_ON);
 }
 
 int board_init(void)
