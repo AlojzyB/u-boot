@@ -59,38 +59,47 @@
 
 &pd_lsio {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio0 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio1 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio2 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio3 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio4 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio5 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio6 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio7 {
 	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_dma {
