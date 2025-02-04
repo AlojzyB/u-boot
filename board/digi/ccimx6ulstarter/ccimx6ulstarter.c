@@ -313,19 +313,9 @@ void platform_default_environment(void)
 int board_late_init(void)
 {
 #ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	const char *ext_gpios[] = {
-		"GPIO1_4",	/* J8.7 */
-		"GPIO1_12",	/* J8.35 */
-		"GPIO1_13",	/* J8.12 */
-		"GPIO1_11",	/* J8.16 */
-		"GPIO1_15",	/* J8.38 */
-		"GPIO1_14",	/* J8.40 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-
 	setup_iomux_ext_gpios();
 
-	if (console_enable_gpio(ext_gpio_name))
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif
 	/* SOM late init */

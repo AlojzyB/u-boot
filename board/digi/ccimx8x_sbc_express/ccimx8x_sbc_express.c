@@ -90,17 +90,6 @@ int board_early_init_f(void)
 {
 	sc_pm_clock_rate_t rate = SC_80MHZ;
 	int ret;
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
-	const char *ext_gpios[] = {
-		"GPIO1_17",	/* J11.7 */
-		"GPIO1_18",	/* J11.11 */
-		"GPIO1_19",	/* J11.40 */
-		"GPIO1_20",	/* J11.13 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
-				       ARRAY_SIZE(ext_gpios_pads));
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
 	/* Set UART2 clock root to 80 MHz */
 	ret = sc_pm_setup_uart(SC_R_UART_2, rate);
@@ -112,7 +101,9 @@ int board_early_init_f(void)
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
-	if (console_enable_gpio(ext_gpio_name))
+	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
+				       ARRAY_SIZE(ext_gpios_pads));
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 #endif /* CONFIG_CONSOLE_DISABLE */
