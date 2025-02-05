@@ -64,7 +64,7 @@ static iomux_cfg_t usdhc2_sd_cd = {
 	SC_P_USDHC1_CD_B | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL)
 };
 
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO)
 #define GPI_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
 			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
 			(SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
@@ -76,7 +76,7 @@ static iomux_cfg_t const ext_gpios_pads[] = {
 	SC_P_USDHC1_RESET_B | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO4_IO19 */
 	SC_P_ENET0_REFCLK_125M_25M | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),/* GPIO5_IO09 */
 };
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 static void setup_iomux_uart(void)
 {
@@ -107,12 +107,12 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO)
 	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
 				       ARRAY_SIZE(ext_gpios_pads));
 	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 #endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
