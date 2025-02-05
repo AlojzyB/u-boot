@@ -263,6 +263,11 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	setup_iomux_ext_gpios();
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
 #endif
 
 	return 0;
@@ -312,12 +317,6 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	setup_iomux_ext_gpios();
-
-	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif
 	/* SOM late init */
 	ccimx6ul_late_init();
 
