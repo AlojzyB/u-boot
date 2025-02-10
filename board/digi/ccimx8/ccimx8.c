@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Digi International, Inc.
+ * Copyright (C) 2019-2025 Digi International, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -251,21 +251,21 @@ void som_default_environment(void)
 	switch (get_cpu_type()) {
 		case MXC_CPU_IMX8QXP:
 			snprintf(var, sizeof(var),
-				 "_ov_som_quad_ccimx8%c.dtbo,", somtype);
+				 "ccimx8%c_quad.dtbo,", somtype);
 			break;
 	}
 
 	if (board_has_wireless())
 		snprintf(var + strlen(var), sizeof(var) - strlen(var),
-			 "_ov_som_wifi_ccimx8%c.dtbo,", somtype);
+			 "ccimx8%c_wifi.dtbo,", somtype);
 
 	if (board_has_bluetooth())
 		snprintf(var + strlen(var), sizeof(var) - strlen(var),
-			 "_ov_som_bt_ccimx8%c.dtbo,", somtype);
+			 "ccimx8%c_bt.dtbo,", somtype);
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 	snprintf(var + strlen(var), sizeof(var) - strlen(var),
-		 "_ov_som_trusty_ccimx8%c.dtbo,", somtype);
+		 "ccimx8%c_trusty.dtbo,", somtype);
 #endif
 
 	/* Remove the trailing comma */
