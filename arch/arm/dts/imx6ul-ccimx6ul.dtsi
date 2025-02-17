@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -29,7 +29,25 @@
 
 	caam_keyblob: caam-keyblob {
 		compatible = "fsl,sec-v4.0-keyblob";
-		status = "disabled";
+	};
+
+	mca_gpio_uboot: mca_gpio {
+		compatible = "digi,mca-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+
+	mca_rtc_uboot: mca_rtc {
+		compatible = "digi,mca-rtc";
+	};
+
+	mca_wdt_uboot: mca_wdt {
+		compatible = "digi,mca-wdt";
+
+		soft-rfsh {
+			digi,full-reset;
+			digi,no-way-out;
+		};
 	};
 };
 
@@ -62,23 +80,25 @@
 };
 
 &gpc {
-	fsl,ldo-bypass = <1>;
+	fsl,ldo-bypass = <0>; /* use ldo-enable, u-boot will check it and configure */
 };
 
 &gpmi {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gpmi_nand>;
+	digi,nand-skip-cont-read;
 	status = "okay";
 };
 
 &i2c1 {
 	clock-frequency = <100000>;
+	digi,buffer-time-us = <35>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
 	mca_cc6ul: mca@7e {
-		compatible = "digi,mca_cc6ul_dt_ids";
+		compatible = "digi,mca-kl03";
 		reg = <0x7e>;
 		interrupt-parent = <&gpio5>;
 		interrupts = <4 IRQ_TYPE_EDGE_FALLING>;
@@ -89,27 +109,31 @@
 		pinctrl-0 = <&pinctrl_mca_cc6ul>;
 
 		mca_gpio: gpio {
-			compatible = "digi,mca-cc6ul-gpio";
+			compatible = "digi,mca-gpio";
 			gpio-controller;
 			#gpio-cells = <2>;
 
 			interrupt-parent = <&mca_cc6ul>;
 			interrupt-controller;
 			#interrupt-cells = <2>;
+
+			/* Disable all mca GPIOs as power off wake up sources */
+			pwroff-wakeup-capable-ios = <>;
 		};
 
 		rtc {
-			compatible = "digi,mca-cc6ul-rtc";
+			compatible = "digi,mca-rtc";
 		};
 
 		watchdog {
-			compatible = "digi,mca-cc6ul-wdt";
+			compatible = "digi,mca-wdt";
 			digi,full-reset;
 		};
 
 		pwrkey {
-			compatible = "digi,mca-cc6ul-pwrkey";
+			compatible = "digi,mca-pwrkey";
 			digi,key-power;
+			digi,key-power-up;
 			digi,key-sleep;
 			digi,debounce-ms = <100>;
 			digi,pwroff-delay-sec = <6>;
@@ -117,17 +141,24 @@
 		};
 
 		mca_adc: adc {
-			compatible = "digi,mca-cc6ul-adc";
+			compatible = "digi,mca-adc";
 			digi,adc-vref = <3000000>;
 		};
 
 		mca_tamper: tamper {
-			compatible = "digi,mca-cc6ul-tamper";
+			compatible = "digi,mca-tamper";
 		};
 
 		mca_uart: uart {
-			compatible = "digi,mca-cc6ul-uart";
+			compatible = "digi,mca-uart";
 			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mca_uart0: serial@900 {
+				reg = <0x900>;
+				index = <0>;
+			};
 		};
 	};
 
@@ -136,7 +167,7 @@
 		reg = <0x7e>;
 	};
 
-	pmic: pfuze3000@08 {
+	pmic: pfuze3000@8 {
 		compatible = "fsl,pfuze3000";
 		reg = <0x08>;
 		fsl,nvram;
@@ -292,6 +323,25 @@
 				MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x30
 			>;
 		};
+	};
+};
+
+&cpu0 {
+	nvmem-cells = <&cpu_speed_grade>, <&mac0>, <&mac1>;
+	nvmem-cell-names = "speed_grade", "mac0", "mac1";
+};
+
+&ocotp {
+	/* By default, make the OTP bits read-only */
+	read-only;
+
+	/* These words contain the HWID */
+	mac0: mac0@88 {
+		reg = <0x88 4>;
+	};
+
+	mac1: mac1@8c {
+		reg = <0x8c 4>;
 	};
 };
 

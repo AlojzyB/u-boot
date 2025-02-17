@@ -293,10 +293,6 @@ int misc_init_r(void);
 /* common/board_info.c */
 int checkboard(void);
 
-#ifdef CONFIG_ANDROID_BOOT_IMAGE
-void get_reboot_reason(char *ret);
-#endif
-
 /**
  * show_board_info() - Show board information
  *

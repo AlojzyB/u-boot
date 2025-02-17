@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Digi International, Inc
+ * Copyright (C) 2016-2024, Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -212,50 +212,16 @@ int board_mmc_init(struct bd_info *bis)
 #endif /* CONFIG_FSL_ESDHC_IMX */
 
 #ifdef CONFIG_FEC_MXC
-void reset_phy(void)
-{
-	int reset;
-
-	/*
-	 * The reset line must be held low for a minimum of 100usec and cannot
-	 * be deasserted before 25ms have passed since the power supply has
-	 * reached 80% of the operating voltage. At this point of the code
-	 * we can assume the second premise is already accomplished.
-	 */
-	if (CONFIG_FEC_ENET_DEV == 0) {
-		/* MCA_IO7 is connected to PHY reset */
-		reset = (1 << 7);
-		/* Configure as output */
-		mca_update_bits(MCA_GPIO_DIR_0, reset, reset);
-		/* Assert PHY reset (low) */
-		mca_update_bits(MCA_GPIO_DATA_0, reset, 0);
-		udelay(100);
-		/* Deassert PHY reset (high) */
-		mca_update_bits(MCA_GPIO_DATA_0, reset, reset);
-	} else if (CONFIG_FEC_ENET_DEV == 1) {
-		/* CPU GPIO5_6 is connected to PHY reset */
-		reset = IMX_GPIO_NR(5, 6);
-		/* Assert PHY reset (low) */
-		gpio_request(reset, "ENET PHY Reset");
-		gpio_direction_output(reset, 0);
-		udelay(100);
-		/* Deassert PHY reset (high) */
-		gpio_set_value(reset, 1);
-	}
-}
-
 int board_phy_config(struct phy_device *phydev)
 {
 	if (phydev->drv->config) {
 		phydev->drv->config(phydev);
 	}
 
-	reset_phy();
-
 	return 0;
 }
 
-static int setup_fec(int fec_id)
+static int setup_fec(void)
 {
 	struct iomuxc *const iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 	int ret;
@@ -291,66 +257,21 @@ static int setup_fec(int fec_id)
 }
 #endif
 
-#ifdef CONFIG_USB_EHCI_MX6
-#define USB_OTHERREGS_OFFSET	0x800
-#define UCTRL_PWR_POL		(1 << 9)
-
-static iomux_v3_cfg_t const usb_otg_pads[] = {
-	MX6_PAD_GPIO1_IO00__ANATOP_OTG1_ID | MUX_PAD_CTRL(OTG_ID_PAD_CTRL),
-};
-
-/* At default the 3v3 enables the MIC2026 for VBUS power */
-static void setup_usb(void)
-{
-	imx_iomux_v3_setup_multiple_pads(usb_otg_pads,
-					 ARRAY_SIZE(usb_otg_pads));
-}
-
-int board_usb_phy_mode(int port)
-{
-	if (port == 1)
-		return USB_INIT_HOST;
-	else
-		return usb_phy_mode(port);
-}
-
-int board_ehci_hcd_init(int port)
-{
-	u32 *usbnc_usb_ctrl;
-
-	if (port > 1)
-		return -EINVAL;
-
-	usbnc_usb_ctrl = (u32 *)(USB_BASE_ADDR + USB_OTHERREGS_OFFSET +
-				 port * 4);
-
-	/* Set Power polarity */
-	setbits_le32(usbnc_usb_ctrl, UCTRL_PWR_POL);
-
-	return 0;
-}
-#endif
-
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#ifdef CONFIG_CONSOLE_ENABLE_GPIO
+	setup_iomux_ext_gpios();
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
+		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
+#endif
 #endif
 
 	return 0;
 }
-
-#ifdef CONFIG_POWER
-int power_init_board(void)
-{
-	/* SOM power init */
-	power_init_ccimx6ul();
-
-	return 0;
-}
-#endif
 
 int board_init(void)
 {
@@ -369,11 +290,7 @@ int board_init(void)
 #endif
 
 #ifdef	CONFIG_FEC_MXC
-	setup_fec(CONFIG_FEC_ENET_DEV);
-#endif
-
-#ifdef CONFIG_USB_EHCI_MX6
-	setup_usb();
+	setup_fec();
 #endif
 
 	return 0;
@@ -400,22 +317,6 @@ void platform_default_environment(void)
 
 int board_late_init(void)
 {
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-	const char *ext_gpios[] = {
-		"GPIO1_4",	/* J8.7 */
-		"GPIO1_12",	/* J8.35 */
-		"GPIO1_13",	/* J8.12 */
-		"GPIO1_11",	/* J8.16 */
-		"GPIO1_15",	/* J8.38 */
-		"GPIO1_14",	/* J8.40 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-
-	setup_iomux_ext_gpios();
-
-	if (console_enable_gpio(ext_gpio_name))
-		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif
 	/* SOM late init */
 	ccimx6ul_late_init();
 

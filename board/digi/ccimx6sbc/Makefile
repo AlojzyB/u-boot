@@ -8,3 +8,4 @@ obj-y  := ccimx6sbc.o ../ccimx6/ccimx6.o
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx6/ccimx6_hwid.o
 endif
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx6/ccimx6_trustfence.o

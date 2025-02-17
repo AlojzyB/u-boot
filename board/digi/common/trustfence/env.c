@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
-#include <asm/mach-imx/hab.h>
-#include <env_internal.h>
+#include <dm.h>
 #include <errno.h>
 #include <fuse.h>
 #include <linux/kernel.h>
@@ -15,24 +14,23 @@
 
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
 #include <fsl_sec.h>
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-#include <asm/arch/clock.h>
-#endif
 #endif
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
 #include "aes_tee.h"
 #endif
 
+#include "boot.h"
+#include "env.h"
+
 /*
  * We use the key modifier as initialization vector (IV) for AES,
  * so make it AES block length size. It also matches the MD5 hash
  * size (16) we use to compose the key modifier.
  */
-#define KEY_MODIFER_SIZE	AES_BLOCK_LENGTH
+#define KEY_MODIFIER_SIZE	AES_BLOCK_LENGTH
 
-static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
+static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFIER_SIZE])
 {
 	u32 ocotp_hwid[CONFIG_HWID_WORDS_NUMBER];
 	int i, ret;
@@ -49,17 +47,27 @@ static int get_trustfence_key_modifier(unsigned char keymod[KEY_MODIFER_SIZE])
 }
 
 #ifdef CONFIG_CAAM_ENV_ENCRYPT
-int env_aes_cbc_crypt(env_t * env, const int enc)
+void setup_caam(void)
+{
+	struct udevice *dev;
+	int ret =
+	    uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr),
+					&dev);
+	if (ret)
+		printf("Failed to initialize caam_jr: %d\n", ret);
+}
+
+int env_crypt(env_t * env, const int enc)
 {
 	unsigned char *data = env->data;
 	int ret = 0;
 	uint8_t *src_ptr, *dst_ptr, *key_mod;
 
-	if (!imx_hab_is_enabled())
+	if (!trustfence_is_closed())
 		return 0;
 
 	/* Buffers must be aligned */
-	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);
 	if (!key_mod) {
 		debug("Not enough memory to encrypt the environment\n");
 		return -ENOMEM;
@@ -82,18 +90,13 @@ int env_aes_cbc_crypt(env_t * env, const int enc)
 	}
 	memcpy(src_ptr, data, ENV_SIZE);
 
-#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || \
-	defined(CONFIG_ARCH_MX7ULP) || defined(CONFIG_ARCH_IMX8M)
-	hab_caam_clock_enable(1);
-	u32 out_jr_size = sec_in32(CFG_SYS_FSL_JR0_ADDR + FSL_CAAM_ORSR_JRa_OFFSET);
-	if (out_jr_size != FSL_CAAM_MAX_JR_SIZE)
-		sec_init();
-#endif
-
-	if (enc)
+	if (enc) {
+		printf("Encrypting... ");
 		ret = blob_encap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
-	else
+	} else {
+		printf("Decrypting... ");
 		ret = blob_decap(key_mod, src_ptr, dst_ptr, ENV_SIZE - BLOB_OVERHEAD, 0);
+	}
 
 	if (ret)
 		goto err;
@@ -112,16 +115,16 @@ freekm:
 #endif
 
 #ifdef CONFIG_OPTEE_ENV_ENCRYPT
-int env_aes_cbc_crypt(env_t * env, const int enc)
+int env_crypt(env_t * env, const int enc)
 {
 	uint8_t *data = env->data;
 	uint8_t *key_mod;
 	int ret = 0;
 
-	if (!imx_hab_is_enabled())
+	if (!trustfence_is_closed())
 		return 0;
 
-	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFER_SIZE);
+	key_mod = memalign(ARCH_DMA_MINALIGN, KEY_MODIFIER_SIZE);
 	if (!key_mod) {
 		debug("Not enough memory for key modifier\n");
 		return -ENOMEM;
@@ -130,6 +133,7 @@ int env_aes_cbc_crypt(env_t * env, const int enc)
 	if (ret)
 		goto freekm;
 
+	printf("%s", enc ? "Encrypting... " : "Decrypting... ");
 	ret = optee_crypt_data(enc, key_mod, data, ENV_SIZE);
 
 freekm:

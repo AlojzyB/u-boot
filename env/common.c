@@ -25,9 +25,7 @@
 #include <net.h>
 #include <watchdog.h>
 
-#ifdef CONFIG_ENV_ENCRYPT
-#include "../board/digi/common/trustfence/env.h"
-#endif
+#include "../board/digi/common/trustfence.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -441,7 +439,7 @@ int env_import(const char *buf, int check, int flags)
 	}
 
 #ifdef CONFIG_ENV_ENCRYPT
-	int ret = env_aes_cbc_crypt(ep, 0);
+	int ret = env_crypt(ep, 0);
 	if (ret) {
 		if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE,
 			      '\0', flags, 0, 0, NULL)) {
@@ -575,7 +573,7 @@ int env_export(env_t *env_out)
 	}
 
 #ifdef CONFIG_ENV_ENCRYPT
-	int ret = env_aes_cbc_crypt(env_out, 1);
+	int ret = env_crypt(env_out, 1);
 	if (ret)
 		return ret;
 #endif

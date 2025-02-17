@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 by Digi International Inc.
+ *  Copyright (C) 2016-2025, Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -11,21 +11,26 @@
 #define TRUSTFENCE_H
 
 #ifdef CONFIG_HAS_TRUSTFENCE
-#ifdef CONFIG_CONSOLE_ENABLE_GPIO
-int console_enable_gpio(const char *name);
-#endif
-#ifdef CONFIG_CONSOLE_ENABLE_PASSPHRASE
-int console_enable_passphrase(void);
-#endif
+#include "trustfence/boot.h"
+#include "trustfence/encryption.h"
 
-int is_uboot_encrypted(void);
-void copy_dek(void);
-void copy_spl_dek(void);
+#ifdef CONFIG_AUTH_ARTIFACTS
+#include "trustfence/auth.h"
+#endif
+#ifdef CONFIG_AHAB_BOOT
+#include "trustfence/ahab.h"
+#endif
+#ifdef CONFIG_IMX_HAB
+#include "trustfence/hab.h"
+#endif
+#ifdef CONFIG_ENV_ENCRYPT
+#include "trustfence/env.h"
+#endif
+#ifdef CONFIG_CONSOLE_DISABLE
+#include "trustfence/console.h"
+#endif
+#ifdef CONFIG_TRUSTFENCE_JTAG
+#include "trustfence/jtag.h"
+#endif
 #endif /* CONFIG_HAS_TRUSTFENCE */
-
-void fdt_fixup_trustfence(void *fdt);
-
-/* platform specific Trustfence support*/
-int trustfence_status(void);
-
 #endif /* TRUSTFENCE_H */

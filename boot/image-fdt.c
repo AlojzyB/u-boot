@@ -28,7 +28,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_AUTH_DISCRETE_ARTIFACTS
-#include "../board/digi/common/auth.h"
+#include "../board/digi/common/trustfence.h"
 static int authentication_failed = 0;
 static int authenticated = 0;
 #endif /* CONFIG_AUTH_DISCRETE_ARTIFACTS */

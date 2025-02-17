@@ -25,10 +25,7 @@
 #include <asm/io.h>
 #include <asm/mach-imx/hab.h>
 #ifdef CONFIG_AUTH_ARTIFACTS
-#include "../board/digi/common/auth.h"
-#ifdef CONFIG_AHAB_BOOT
-#include "../board/digi/common/trustfence/ahab.h"
-#endif
+#include "../board/digi/common/trustfence.h"
 #endif
 
 static int do_source(struct cmd_tbl *cmdtp, int flag, int argc,

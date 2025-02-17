@@ -36,8 +36,6 @@
 #define PHYS_SDRAM_2_SIZE		0
 #define PHYS_SDRAM			PHYS_SDRAM_1
 
-#define CONFIG_FSL_CAAM_KB
-
 /* Secure boot configs */
 #define CONFIG_TRUSTFENCE_SRK_BANK			0
 #define CONFIG_TRUSTFENCE_SRK_WORDS			16
@@ -107,6 +105,7 @@
 	"eth1addr=" DEFAULT_MAC_ETHADDR1 "\0"
 
 /* protected environment variables (besides ethaddr and serial#) */
+#undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\
 	"eth1addr:mc,"			\
 	"wlanaddr:mc,"			\

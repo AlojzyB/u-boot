@@ -20,7 +20,7 @@
 #include "../ccimx8x/hwid_cc8x.h"
 #elif defined(CONFIG_CC8M)
 #include "../ccimx8m/hwid_cc8m.h"
-#elif defined(CONFIG_CC93)
+#elif defined(CONFIG_CC9)
 #include "../ccimx9/hwid_ccimx9.h"
 #endif
 
@@ -46,6 +46,6 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid);
 u64 hwid_get_ramsize(const struct digi_hwid *hwid);
 void print_hwid_hex(struct digi_hwid *hwid);
 void hwid_get_macs(uint32_t pool, uint32_t base);
-void hwid_get_serial_number(uint32_t year, uint32_t week, uint32_t serial);
+void hwid_get_serial_number(const struct digi_hwid *hwid);
 
 #endif	/* __HWID_H_ */

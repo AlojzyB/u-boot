@@ -20,7 +20,8 @@
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg1>;
 		status = "okay";
-		u-boot,dm-spl;
+		bootph-some-ram;
+		bootph-pre-ram;
 	};
 
 	usbg3: usbg3 {
@@ -28,312 +29,234 @@
 		dr_mode = "peripheral";
 		chipidea,usb = <&usbotg3>;
 		status = "okay";
-		u-boot,dm-spl;
+		bootph-some-ram;
+		bootph-pre-ram;
 	};
 };
-
-#ifndef CONFIG_SPL
-/*
- * U-Boot specific info for NON-SPL builds
- */
-&{/imx8qx-pm} {
-	u-boot,dm-pre-proper;
-};
-
-&mu {
-	u-boot,dm-pre-proper;
-};
-
-&clk {
-	u-boot,dm-pre-proper;
-};
-
-&iomuxc {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio0 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio1 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio2 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio3 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio4 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_lsio_gpio5 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_dma {
-	u-boot,dm-pre-proper;
-};
-
-&pd_dma_lpuart2 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_conn {
-	u-boot,dm-pre-proper;
-};
-
-&pd_conn_sdch0 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_conn_sdch1 {
-	u-boot,dm-pre-proper;
-};
-
-&pd_conn_sdch2 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio0 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio1 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio2 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio3 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio4 {
-	u-boot,dm-pre-proper;
-};
-
-&gpio5 {
-	u-boot,dm-pre-proper;
-};
-
-&lpuart2 {
-	u-boot,dm-pre-proper;
-};
-
-&usdhc1 {
-	u-boot,dm-pre-proper;
-};
-
-&usdhc2 {
-	u-boot,dm-pre-proper;
-};
-
-#else
 
 /*
  * U-Boot specific info for SPL builds
  */
 &{/imx8qx-pm} {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &mu {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &clk {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &iomuxc {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_lsio {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio3 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio4 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio5 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio6 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_lsio_gpio7 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	bootph-some-ram;
 };
 
 &pd_dma {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_dma_lpuart2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_conn {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_sdch0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_sdch1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_sdch2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usbotg0 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usbotg0_phy {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usb2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_conn_usb2_phy {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &pd_caam {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_caam_jr1 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_caam_jr2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &pd_caam_jr3 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio0 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio1 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio3 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio4 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio5 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio6 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &gpio7 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &lpuart2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &usbmisc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbphy1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbotg1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+	pinctrl-names = "default";
+	pinctrl-0 = <>;
 };
 
 &usbotg3 {
 	phys = <&usbphynop1>;
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usbphynop1 {
 	compatible = "cdns,usb3-phy";
 	reg = <0x0 0x5B160000 0x0 0x40000>;
 	#phy-cells = <0>;
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &usdhc2 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
 };
 
 &crypto {
-	u-boot,dm-spl;
 };
 
 &sec_jr1 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &sec_jr2 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
 
 &sec_jr3 {
-	u-boot,dm-spl;
+	bootph-some-ram;
+	bootph-pre-ram;
 };
-#endif

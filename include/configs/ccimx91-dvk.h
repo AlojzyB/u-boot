@@ -45,11 +45,11 @@
 #define JAILHOUSE_ENV \
 	"jh_root_dtb=" JH_ROOT_DTB "\0" \
 	"jh_mmcboot=setenv fdt_file ${jh_root_dtb}; " \
-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
+		    "setenv jh_clk kvm.enable_virt_at_load=false clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
 		    "if run loadimage; then run mmcboot;" \
 		    "else run jh_netboot; fi; \0" \
 	"jh_netboot=setenv fdt_file ${jh_root_dtb}; " \
-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
+		    "setenv jh_clk kvm.enable_virt_at_load=false clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
 
 /* Override CFG_MFG_ENV_SETTINGS_DEFAULT from imx_env.h */
 #undef CFG_MFG_ENV_SETTINGS_DEFAULT

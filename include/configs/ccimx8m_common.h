@@ -324,6 +324,7 @@
 #define RECOVERY_PARTITION	"2"
 
 /* protected environment variables (besides ethaddr and serial#) */
+#undef CFG_ENV_FLAGS_LIST_STATIC
 #define CFG_ENV_FLAGS_LIST_STATIC	\
 	"wlanaddr:mc,"			\
 	"wlan1addr:mc,"			\

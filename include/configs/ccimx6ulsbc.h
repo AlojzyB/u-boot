@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * Configuration settings for the Digi ConnecCore 6UL SBC board.
@@ -13,22 +13,11 @@
 
 #define CONFIG_BOARD_DESCRIPTION	"SBC Pro"
 
-/* uncomment for PLUGIN mode support */
-/* #define CONFIG_USE_PLUGIN */
-
-/* uncomment for BEE support, needs to enable CONFIG_CMD_FUSE */
-/* #define CONFIG_CMD_BEE */
-
-/* NAND stuff */
-#ifdef CONFIG_NAND_MXS
-#define CONFIG_CMD_NAND_TRIMFFS
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_NAND_BASE		0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
-#endif
-
+/* MMC Configs */
+#ifdef CONFIG_FSL_USDHC
+#define CFG_SYS_FSL_ESDHC_ADDR	USDHC2_BASE_ADDR
 #define CFG_SYS_FSL_USDHC_NUM	1
+#endif
 
 /* U-Boot Environment */
 #if defined(CONFIG_ENV_IS_IN_MMC)
@@ -47,39 +36,13 @@
 #define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
 #endif
 #define CONFIG_DYNAMIC_ENV_LOCATION
-#if (CONFIG_DDR_MB == 1024)
-# define CONFIG_ENV_PARTITION_SIZE	(3 * SZ_1M)
-#else
-# define CONFIG_ENV_PARTITION_SIZE	(1 * SZ_1M)
-#endif /* (CONFIG_DDR_MB == 1024) */
 
 /* Serial port */
-#define CONFIG_MXC_UART
 #define CFG_MXC_UART_BASE		UART5_BASE
-#undef CONFIG_CONS_INDEX
-#define CONFIG_CONS_INDEX		5
 #define CONSOLE_DEV			"ttymxc4"
-#define CONFIG_BAUDRATE			115200
-
-/* Ethernet */
-#define CONFIG_FEC_ENET_DEV		0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x0
-#define CONFIG_ETHPRIME                 "FEC0"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR          0x1
-#define CONFIG_ETHPRIME                 "FEC1"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#endif
 
 /* Video */
 #ifdef CONFIG_VIDEO
-#define CONFIG_CFB_CONSOLE
-#define CONFIG_SYS_CONSOLE_BG_COL	0x00
-#define CONFIG_SYS_CONSOLE_FG_COL	0xa0
 #define CONFIG_VIDEO_MXS
 #define CONFIG_CMD_BMP
 #define CONFIG_BMP_16BPP
@@ -88,15 +51,6 @@
 #define BACKLIGHT_GPIO			(IMX_GPIO_NR(4, 16))
 #define BACKLIGHT_ENABLE_POLARITY	1
 #endif
-
-#undef CONFIG_DEFAULT_FDT_FILE
-#define CONFIG_DEFAULT_FDT_FILE		"imx6ul-" CONFIG_SYS_BOARD ".dtb"
-
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND \
-	"if run loadscript; then " \
-		"source ${loadaddr};" \
-	"fi;"
 
 #define CONFIG_COMMON_ENV	\
 	CONFIG_DEFAULT_NETWORK_SETTINGS \
@@ -144,7 +98,7 @@
 	"initrd_high=0xffffffff\0" \
 	"usb_pgood_delay=2000\0" \
 	"update_addr=" __stringify(CONFIG_DIGI_UPDATE_ADDR) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"recovery_file=recovery.img\0" \
 	"script=boot.scr\0" \
 	"uboot_file=u-boot.imx\0" \
@@ -254,7 +208,6 @@
 #else
 #define CFG_EXTRA_ENV_SETTINGS \
 	CONFIG_COMMON_ENV \
-	"bootcmd_mfg=fastboot " __stringify(CONFIG_FASTBOOT_USB_DEV) "\0" \
 	"loadscript=load mmc ${mmcbootdev}:${mmcpart} ${loadaddr} ${script}\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
@@ -264,8 +217,6 @@
 		"root=${mmcroot}\0" \
 	""	/* end line */
 #endif
-
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
 /* Carrier board version and ID commands */
 #define CONFIG_CMD_BOARD_VERSION

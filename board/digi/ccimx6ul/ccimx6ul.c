@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Digi International, Inc.
+ * Copyright (C) 2016-2024, Digi International Inc.
  * Copyright (C) 2015 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -16,10 +16,10 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
-#include <asm/mach-imx/hab.h>
 #include <asm/io.h>
 #include <command.h>
 #include <common.h>
+#include <dm.h>
 #ifdef CONFIG_OF_LIBFDT
 #include <fdt_support.h>
 #endif
@@ -27,12 +27,10 @@
 #include <linux/delay.h>
 #include <linux/sizes.h>
 #include <nand.h>
-
-#ifdef CONFIG_POWER
 #include <power/pmic.h>
 #include <power/pfuze3000_pmic.h>
 #include "../../freescale/common/pfuze.h"
-#endif
+
 #include "../common/helper.h"
 #include "../common/hwid.h"
 #include "../common/mca_registers.h"
@@ -44,9 +42,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern bool bmode_reset;
 static struct digi_hwid my_hwid;
-#ifdef CONFIG_HAS_TRUSTFENCE
-extern int rng_swtest_status;
-#endif
 
 #define MDIO_PAD_CTRL  (PAD_CTL_PUS_100K_UP | PAD_CTL_PUE |     \
 	PAD_CTL_DSE_48ohm   | PAD_CTL_SRE_FAST | PAD_CTL_ODE)
@@ -178,34 +173,9 @@ static void setup_gpmi_nand(void)
 	/* config gpmi nand iomux */
 	imx_iomux_v3_setup_multiple_pads(nand_pads, ARRAY_SIZE(nand_pads));
 
-	clrbits_le32(&mxc_ccm->CCGR4,
-		     MXC_CCM_CCGR4_RAWNAND_U_BCH_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_BCH_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_GPMI_IO_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_PL301_MX6QPER1_BCH_MASK);
-
-	/*
-	 * config gpmi and bch clock to 100 MHz
-	 * bch/gpmi select PLL2 PFD2 400M
-	 * 100M = 400M / 4
-	 */
-	clrbits_le32(&mxc_ccm->cscmr1,
-		     MXC_CCM_CSCMR1_BCH_CLK_SEL |
-		     MXC_CCM_CSCMR1_GPMI_CLK_SEL);
-	clrsetbits_le32(&mxc_ccm->cscdr1,
-			MXC_CCM_CSCDR1_BCH_PODF_MASK |
-			MXC_CCM_CSCDR1_GPMI_PODF_MASK,
-			(3 << MXC_CCM_CSCDR1_BCH_PODF_OFFSET) |
-			(3 << MXC_CCM_CSCDR1_GPMI_PODF_OFFSET));
-
-	/* enable gpmi and bch clock gating */
-	setbits_le32(&mxc_ccm->CCGR4,
-		     MXC_CCM_CCGR4_RAWNAND_U_BCH_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_BCH_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_GPMI_IO_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_PL301_MX6QPER1_BCH_MASK);
+	setup_gpmi_io_clk((MXC_CCM_CS2CDR_ENFC_CLK_PODF(0) |
+			MXC_CCM_CS2CDR_ENFC_CLK_PRED(3) |
+			MXC_CCM_CS2CDR_ENFC_CLK_SEL(3)));
 
 	/* enable apbh clock gating */
 	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
@@ -239,56 +209,52 @@ static bool board_has_bluetooth(void)
 		return true; /* assume it has if invalid HWID */
 }
 
-#ifdef CONFIG_POWER
-#define I2C_PMIC	0
-static struct pmic *pfuze;
-int power_init_ccimx6ul(void)
+#ifdef CONFIG_DM_PMIC
+int power_init_board(void)
 {
-	int ret;
-	unsigned int reg, rev_id;
+	struct udevice *dev;
+	int ret, dev_id, rev_id;
+	unsigned int reg;
 
-	ret = power_pfuze3000_init(I2C_PMIC);
-	if (ret)
+	ret = pmic_get("pfuze3000@8", &dev);
+	if (ret == -ENODEV)
+		return 0;
+	if (ret != 0)
 		return ret;
 
-	pfuze = pmic_get("PFUZE3000");
-	ret = pmic_probe(pfuze);
-	if (ret)
-		return ret;
-
-	pmic_reg_read(pfuze, PFUZE3000_DEVICEID, &reg);
-	pmic_reg_read(pfuze, PFUZE3000_REVID, &rev_id);
-	printf("PMIC:  PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+	dev_id = pmic_reg_read(dev, PFUZE3000_DEVICEID);
+	rev_id = pmic_reg_read(dev, PFUZE3000_REVID);
+	printf("PMIC: PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", dev_id, rev_id);
 
 	/* disable Low Power Mode during standby mode */
-	pmic_reg_read(pfuze, PFUZE3000_LDOGCTL, &reg);
+	reg = pmic_reg_read(dev, PFUZE3000_LDOGCTL);
 	reg |= 0x1;
-	pmic_reg_write(pfuze, PFUZE3000_LDOGCTL, reg);
+	pmic_reg_write(dev, PFUZE3000_LDOGCTL, reg);
 
 	/* SW1A mode to APS/OFF, to switch off the regulator in standby */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE3000_SW1AMODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1AMODE, reg);
 
 	/* SW1B step ramp up time from 2us to 4us/25mV */
-	pmic_reg_read(pfuze, PFUZE3000_SW1BCONF, &reg);
+	reg = pmic_reg_read(dev, PFUZE3000_SW1BCONF);
 	reg |= (1 << 6); /* 0 = 2us/25mV , 1 = 4us/25mV */
-	pmic_reg_write(pfuze, PFUZE3000_SW1BCONF, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BCONF, reg);
 
 	/* SW1B mode to APS/PFM, to optimize performance */
 	reg = 0xc;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BMODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BMODE, reg);
 
 	/* SW1B voltage set to 1.3V */
 	reg = 0x18;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BVOLT, reg);
 
 	/* SW1B standby voltage set to 0.925V */
 	reg = 0x09;
-	pmic_reg_write(pfuze, PFUZE3000_SW1BSTBY, reg);
+	pmic_reg_write(dev, PFUZE3000_SW1BSTBY, reg);
 
 	/* SW2 mode to APS/OFF, to switch off in standby mode */
 	reg = 0x04;
-	pmic_reg_write(pfuze, PFUZE3000_SW2MODE, reg);
+	pmic_reg_write(dev, PFUZE3000_SW2MODE, reg);
 
 	return 0;
 }
@@ -298,10 +264,11 @@ void ldo_mode_set(int ldo_bypass)
 {
 	unsigned int value;
 	u32 vddarm;
+	struct udevice *dev;
+	int ret;
 
-	struct pmic *p = pfuze;
-
-	if (!p) {
+	ret = pmic_get("pfuze3000@8", &dev);
+	if (ret == -ENODEV) {
 		printf("No PMIC found!\n");
 		return;
 	}
@@ -310,18 +277,18 @@ void ldo_mode_set(int ldo_bypass)
 	if (ldo_bypass) {
 		prep_anatop_bypass();
 		/* decrease VDDARM to 1.275V */
-		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
+		value = pmic_reg_read(dev, PFUZE3000_SW1BVOLT);
 		value &= ~0x1f;
 		value |= PFUZE3000_SW1AB_SETP(12750);
-		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
+		pmic_reg_write(dev, PFUZE3000_SW1BVOLT, value);
 
 		set_anatop_bypass(1);
 		vddarm = PFUZE3000_SW1AB_SETP(11750);
 
-		pmic_reg_read(pfuze, PFUZE3000_SW1BVOLT, &value);
+		value = pmic_reg_read(dev, PFUZE3000_SW1BVOLT);
 		value &= ~0x1f;
 		value |= vddarm;
-		pmic_reg_write(pfuze, PFUZE3000_SW1BVOLT, value);
+		pmic_reg_write(dev, PFUZE3000_SW1BVOLT, value);
 
 		finish_anatop_bypass();
 
@@ -334,36 +301,16 @@ void ldo_mode_set(int ldo_bypass)
 int ccimx6ul_init(void)
 {
 #ifdef CONFIG_HAS_TRUSTFENCE
-	uint32_t ret;
-	uint8_t event_data[36] = { 0 }; /* Event data buffer */
-	size_t bytes = sizeof(event_data); /* Event size in bytes */
-	enum hab_config config = 0;
-	enum hab_state state = 0;
-	hab_rvt_report_status_t *hab_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
-
-	/* HAB event verification */
-	ret = hab_report_status(&config, &state);
-	if (ret == HAB_WARNING) {
-		pr_debug("\nHAB Configuration: 0x%02x, HAB State: 0x%02x\n",
-		       config, state);
-		/* Verify RNG self test */
-		rng_swtest_status = hab_event_warning_check(event_data, &bytes);
-		if (rng_swtest_status == SW_RNG_TEST_PASSED) {
-			printf("RNG:   self-test failed, but software test passed.\n");
-		} else if (rng_swtest_status == SW_RNG_TEST_FAILED) {
-#ifdef CONFIG_RNG_SELF_TEST
-			printf("WARNING: RNG self-test and software test failed!\n");
-#else
-			printf("WARNING: RNG self-test failed!\n");
-#endif
-			if (imx_hab_is_enabled()) {
-				printf("Aborting secure boot.\n");
-				run_command("reset", 0);
-			}
-		}
-	} else {
-		rng_swtest_status = SW_RNG_TEST_NA;
-	}
+	hab_verification();
+#ifdef CONFIG_CAAM_ENV_ENCRYPT
+	/*
+	 * Initialize CAAM at an early stage, before the environment is first loaded,
+	 * so it can be decrypted on the fly.
+	 *
+	 * Originally initialized at 'int arch_misc_init(void)'.
+	 */
+	setup_caam();
+#endif /* CONFIG_CAAM_ENV_ENCRYPT */
 #endif /* CONFIG_HAS_TRUSTFENCE */
 
 	/* Address of boot parameters */
@@ -465,6 +412,19 @@ void som_default_environment(void)
 	sprintf(var, "0x%02x", my_hwid.variant);
 	env_set("module_variant", var);
 
+	/* Verify MAC addresses */
+	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
+	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
+
+	if (board_has_wireless())
+		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
+
+	if (board_has_bluetooth())
+		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
+
+	/* Get serial number from fuses */
+	hwid_get_serial_number(&my_hwid);
+
 	/* Set $hwid_n variables */
 	for (i = 0; i < CONFIG_HWID_WORDS_NUMBER; i++) {
 		snprintf(var, sizeof(var), "hwid_%d", i);
@@ -497,21 +457,6 @@ int ccimx6ul_late_init(void)
 	else
 		gd->flags |= GD_FLG_DISABLE_CONSOLE_INPUT;
 #endif
-
-#ifdef CONFIG_HAS_TRUSTFENCE
-	copy_dek();
-#endif
-
-	/* Verify MAC addresses */
-	verify_mac_address("ethaddr", DEFAULT_MAC_ETHADDR);
-	verify_mac_address("eth1addr", DEFAULT_MAC_ETHADDR1);
-
-	if (board_has_wireless())
-		verify_mac_address("wlanaddr", DEFAULT_MAC_WLANADDR);
-
-	if (board_has_bluetooth())
-		verify_mac_address("btaddr", DEFAULT_MAC_BTADDR);
-
 	return 0;
 }
 
@@ -587,15 +532,6 @@ void fdt_fixup_ccimx6ul(void *fdt)
 		return UBOOT_PART_SIZE_BIG * SZ_1M;
 	else
 		return UBOOT_PART_SIZE_SMALL * SZ_1M;
-}
-
-long long env_get_offset_redund(long long default_offset)
-{
-#ifdef CONFIG_DYNAMIC_ENV_LOCATION
-	return env_get_offset_redund(default_offset);
-#else
-	return default_offset;
-#endif
 }
 
 long long env_get_offset_old(int index)

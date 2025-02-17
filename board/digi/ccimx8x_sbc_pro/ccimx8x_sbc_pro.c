@@ -6,13 +6,14 @@
  */
 #include <common.h>
 #include <fsl_esdhc_imx.h>
+#include <led.h>
 
 #include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/arch/imx8-pins.h>
 #include <usb.h>
 #include <asm/arch/iomux.h>
-#include <asm/arch/sci/sci.h>
+#include <firmware/imx/sci/sci.h>
 #include <asm/arch/snvs_security_sc.h>
 #include <asm/arch/sys_proto.h>
 #include <power-domain.h>
@@ -63,7 +64,7 @@ static iomux_cfg_t usdhc2_sd_cd = {
 	SC_P_USDHC1_CD_B | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPIO_PAD_CTRL)
 };
 
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO)
 #define GPI_PAD_CTRL	((SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
 			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
 			(SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
@@ -75,21 +76,11 @@ static iomux_cfg_t const ext_gpios_pads[] = {
 	SC_P_USDHC1_RESET_B | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),	/* GPIO4_IO19 */
 	SC_P_ENET0_REFCLK_125M_25M | MUX_MODE_ALT(4) | MUX_PAD_CTRL(GPI_PAD_CTRL),/* GPIO5_IO09 */
 };
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 
 static void setup_iomux_uart(void)
 {
 	imx8_iomux_setup_multiple_pads(uart2_pads, ARRAY_SIZE(uart2_pads));
-}
-
-static __maybe_unused void setup_caam(void)
-{
-	struct udevice *dev;
-	int ret =
-	    uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(caam_jr),
-					&dev);
-	if (ret)
-		printf("Failed to initialize caam_jr: %d\n", ret);
 }
 
 int board_early_init_r(void)
@@ -104,17 +95,6 @@ int board_early_init_f(void)
 {
 	sc_pm_clock_rate_t rate = SC_80MHZ;
 	int ret;
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
-	const char *ext_gpios[] = {
-		"GPIO4_21",	/* A7 */
-		"GPIO4_20",	/* B7 */
-		"GPIO4_19",	/* C15 */
-		"GPIO5_9",	/* D19 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
-	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
-				       ARRAY_SIZE(ext_gpios_pads));
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 
 	/* Set UART2 clock root to 80 MHz */
 	ret = sc_pm_setup_uart(SC_R_UART_2, rate);
@@ -127,10 +107,12 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_CONSOLE_DISABLE
 	gd->flags |= (GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
-	if (console_enable_gpio(ext_gpio_name))
+#if defined(CONFIG_CONSOLE_ENABLE_GPIO)
+	imx8_iomux_setup_multiple_pads(ext_gpios_pads,
+				       ARRAY_SIZE(ext_gpios_pads));
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
-#endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
+#endif /* CONFIG_CONSOLE_ENABLE_GPIO */
 #endif /* CONFIG_CONSOLE_DISABLE */
 
 	return 0;
@@ -311,32 +293,16 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 
 static int board_power_led_init(void)
 {
-	/* MCA_IO13 is connected to POWER_LED */
-	const char *name = "MCA-GPIO_13";
-	struct gpio_desc desc;
+	struct udevice *dev;
 	int ret;
 
-	ret = dm_gpio_lookup_name(name, &desc);
-	if (ret)
-		goto error;
+	ret = led_get_by_label("power", &dev);
+	if (ret || !dev) {
+		printf("%s: failed to get power LED device\n", __func__);
+		return -ENODEV;
+	}
 
-	ret = dm_gpio_request(&desc, "Power LED");
-	if (ret)
-		goto error;
-
-	ret = dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
-	if (ret)
-		goto errfree;
-
-	ret = dm_gpio_set_value(&desc, 1);
-	if (ret)
-		goto errfree;
-
-	return 0;
-errfree:
-	dm_gpio_free(NULL, &desc);
-error:
-	return ret;
+	return led_set_state(dev, LEDST_ON);
 }
 
 int board_init(void)

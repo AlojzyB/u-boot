@@ -136,11 +136,6 @@ int board_late_init(void)
 	/* Set default dynamic variables */
 	platform_default_environment();
 
-#ifdef CONFIG_HAS_TRUSTFENCE
-	copy_dek();
-	copy_spl_dek();
-#endif
-
 	return 0;
 }
 
@@ -272,16 +267,9 @@ error:
 int board_init(void)
 {
 #if defined(CONFIG_CONSOLE_ENABLE_GPIO) && !defined(CONFIG_SPL_BUILD)
-	const char *ext_gpios[] = {
-		"GPIO1_10",	/* J46.3 */
-		"GPIO1_11",	/* J46.5 */
-		"GPIO1_13",	/* J46.7 */
-		"GPIO1_14",	/* J46.9 */
-	};
-	const char *ext_gpio_name = ext_gpios[CONFIG_CONSOLE_ENABLE_GPIO_NR];
 	imx_iomux_v3_setup_multiple_pads(ext_gpios_pads,
 					 ARRAY_SIZE(ext_gpios_pads));
-	if (console_enable_gpio(ext_gpio_name))
+	if (console_enable_gpio(CONFIG_CONSOLE_ENABLE_GPIO_NAME))
 		gd->flags &= ~(GD_FLG_DISABLE_CONSOLE | GD_FLG_SILENT);
 #endif /* CONFIG_CONSOLE_ENABLE_GPIO && !CONFIG_SPL_BUILD */
 

@@ -20,8 +20,8 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/arch-mx7ulp/gpio.h>
-#include <asm/mach-imx/syscounter.h>
 #include <asm/mach-imx/ele_api.h>
+#include <asm/mach-imx/syscounter.h>
 #include <asm/sections.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
@@ -65,11 +65,11 @@ void spl_board_init(void)
 {
 	int ret;
 
-	puts("Normal Boot\n");
-
 	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
+
+	puts("Normal Boot\n");
 }
 
 void spl_dram_init(void)
@@ -111,13 +111,11 @@ int power_init_board(void)
 	unsigned int val = 0, buck_val;
 
 	ret = pmic_get("pmic@25", &dev);
-	if (ret == -ENODEV) {
-		puts("No pca9450@25\n");
-		return 0;
-	}
-	if (ret != 0)
+	if (ret != 0) {
+		puts("ERROR: Get PMIC PCA9451A failed!\n");
 		return ret;
-
+	}
+	puts("PMIC: PCA9451A\n");
 	/* BUCKxOUT_DVS0/1 control BUCK123 output */
 	pmic_reg_write(dev, PCA9450_BUCK123_DVS, 0x29);
 
@@ -141,6 +139,9 @@ int power_init_board(void)
 		printf("PMIC: Over Drive Voltage Mode\n");
 	}
 
+	if (!is_soc_rev(CHIP_REV_1_0))
+		ele_volt_change_start_req();
+
 	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB) {
 		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val);
 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val);
@@ -148,6 +149,9 @@ int power_init_board(void)
 		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, buck_val + 0x4);
 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
 	}
+
+	if (!is_soc_rev(CHIP_REV_1_0))
+		ele_volt_change_finish_req();
 
 	if (IS_ENABLED(CONFIG_CCIMX93_DVK_LPDDR4)) {
 		/* Set VDDQ to 1.1V from buck2 */

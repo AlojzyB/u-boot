@@ -250,13 +250,42 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
+		return
+	fi
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${SRK_REVOKE_MASK}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} SRK_REVOKE_MASK=${SRK_REVOKE_MASK}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+
+		echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx91-dvk-nooptee-flash_singleboot.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk-nooptee.bin imx-boot-signed-ccimx91-dvk-nooptee.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk-nooptee.bin imx-boot-encrypted-ccimx91-dvk-nooptee.bin
+
+		echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC}"
+		TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx91-dvk-flash_singleboot.log"
+		env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk.bin imx-boot-signed-ccimx91-dvk.bin
+		env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx91-dvk.bin imx-boot-encrypted-ccimx91-dvk.bin
+	)
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.6.23_2.0.0"
-# Tag: lf-6.6.23-2.0.0
-MKIMAGE_REV="ca5d6b2d3fd9ab15825b97f7ef6f1ce9a8644966"
+MKIMAGE_BRANCH="lf-6.6.52_2.2.0"
+# Tag: lf-6.6.52-2.2.0
+MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_SOC_DIR="${MKIMAGE_DIR}/iMX91"
 MKIMAGE_PATCHES=" \
@@ -265,27 +294,27 @@ MKIMAGE_PATCHES=" \
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
 ATF_BRANCH="lf_v2.10"
-# Tag: lf-6.6.23-2.0.0
-ATF_REV="49143a1701d9ccd3239e3f95f3042897ca889ea8"
+# Tag: lf-6.6.52-2.2.0
+ATF_REV="1b27ee3edbb40ef9432c69ccaa744d1ac5d54c5d"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-ccimx91-use-UART6-for-the-default-console.patch \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.6.23_2.0.0"
-# Tag: lf-6.6.23-2.0.0
-OPTEE_REV="c6be5b572452a2808d1a34588fd10e71715e23cf"
+OPTEE_BRANCH="lf-6.6.52_2.2.0"
+# Tag: lf-6.6.52-2.2.0
+OPTEE_REV="60beb308810f9561a67fdb435388a64c85eb6dcb"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
 	optee/0001-core-imx-support-ccimx91-dvk.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.24-fbe0a4c"
+FIRMWARE_IMX="firmware-imx-8.26-d4c33ab"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-0.1.2-4ed450a"
+FIRMWARE_ELE="firmware-ele-imx-1.3.0-17945fc"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
@@ -294,6 +323,8 @@ ATF_PLAT="imx91"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_ahab.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -320,3 +351,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot

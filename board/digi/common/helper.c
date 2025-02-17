@@ -13,8 +13,6 @@
 #include <env.h>
 #include <gzip.h>
 #include <linux/errno.h>
-#include <fsl_sec.h>
-#include <asm/mach-imx/hab.h>
 #include <malloc.h>
 #include <mapmem.h>
 #include <nand.h>
@@ -27,9 +25,6 @@
 #include <otf_update.h>
 #include "helper.h"
 #include "hwid.h"
-#ifdef CONFIG_FSL_CAAM
-#include "../drivers/crypto/fsl/jr.h"
-#endif
 #ifdef CONFIG_ANDROID_SUPPORT
 #include "mca.h"
 #include "mca_registers.h"
@@ -83,10 +78,6 @@ extern int tftp_timeout_count_max;
 extern unsigned long net_start_again_timeout;
 int DownloadingAutoScript = 0;
 int RunningAutoScript = 0;
-#endif
-
-#ifdef CONFIG_HAS_TRUSTFENCE
-int rng_swtest_status = 0;
 #endif
 
 int confirm_msg(char *msg)
@@ -890,54 +881,6 @@ __weak bool validate_bootloader_image(void *loadaddr)
 	return true;
 }
 
-#ifdef CONFIG_HAS_TRUSTFENCE
-#define RNG_FAIL_EVENT_SIZE 36
-
-static uint8_t habv4_known_rng_fail_events[][RNG_FAIL_EVENT_SIZE] = {
-	{ 0xdb, 0x00, 0x24, 0x42,  0x69, 0x30, 0xe1, 0x1d,
-	  0x00, 0x80, 0x00, 0x02,  0x40, 0x00, 0x36, 0x06,
-	  0x55, 0x55, 0x00, 0x03,  0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x00, 0x01 },
-	{ 0xdb, 0x00, 0x24, 0x42,  0x69, 0x30, 0xe1, 0x1d,
-	  0x00, 0x04, 0x00, 0x02,  0x40, 0x00, 0x36, 0x06,
-	  0x55, 0x55, 0x00, 0x03,  0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x00, 0x01 },
-};
-
-extern enum hab_status hab_rvt_report_event(enum hab_status status, uint32_t index,
-					    uint8_t *event, size_t *bytes);
-
-int hab_event_warning_check(uint8_t *event, size_t *bytes)
-{
-	int ret = SW_RNG_TEST_NA, i;
-	bool is_rng_fail_event = false;
-
-	/* Get HAB Event warning data */
-	hab_rvt_report_event(HAB_WARNING, 0, event, bytes);
-
-	/* Compare HAB event warning data with known Warning issues */
-	for (i = 0; i < ARRAY_SIZE(habv4_known_rng_fail_events); i++) {
-		if (memcmp(event, habv4_known_rng_fail_events[i],
-			   RNG_FAIL_EVENT_SIZE) == 0) {
-			is_rng_fail_event = true;
-			break;
-		}
-	}
-
-	if (is_rng_fail_event) {
-#ifdef CONFIG_RNG_SELF_TEST
-		printf("RNG:   self-test failure detected, will run software self-test\n");
-		rng_self_test();
-		ret = SW_RNG_TEST_PASSED;
-#endif
-	}
-
-	return ret;
-}
-#endif /* CONFIG_HAS_TRUSTFENCE */
-
 #ifdef CONFIG_ANDROID_LOAD_CONNECTCORE_FDT
 #include <dt_table.h>
 
@@ -1076,9 +1019,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		printf("Failed to set base fdt address to %lx\n", fdt_addr);
 		return -EINVAL;
 	}
-	/* get the right fdt_blob from the global working_fdt */
-	gd->fdt_blob = working_fdt;
-	root_node = fdt_path_offset(gd->fdt_blob, "/");
+	root_node = fdt_path_offset(working_fdt, "/");
 
 	/* Copy the variable to avoid modifying it in memory */
 	env_overlay_list = env_get(overlays_var);
@@ -1122,7 +1063,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		}
 
 		/* Search for an overlay description */
-		overlay_desc = (char *)fdt_getprop(gd->fdt_blob, root_node,
+		overlay_desc = (char *)fdt_getprop(working_fdt, root_node,
 						   "overlay-description", NULL);
 
 		/* Print the overlay filename (and description if available) */
@@ -1130,7 +1071,7 @@ int apply_fdt_overlays(char *overlays_var, ulong fdt_addr,
 		if (overlay_desc) {
 			printf("%s", overlay_desc);
 			/* remove property and reset pointer after printing */
-			fdt_delprop((void *)gd->fdt_blob, root_node,
+			fdt_delprop((void *)working_fdt, root_node,
 				    "overlay-description");
 			overlay_desc = NULL;
 		}

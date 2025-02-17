@@ -18,10 +18,8 @@
 #endif
 #include <linux/libfdt.h>
 #include "../board/digi/common/helper.h"
+#include "../board/digi/common/trustfence.h"
 #include <image.h>
-#if defined(CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS) || defined(CONFIG_AUTH_FIT_ARTIFACT)
-#include "../board/digi/common/auth.h"
-#endif /* CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS */
 
 #define DELIM_OV_FILE		","
 

@@ -14,26 +14,10 @@
 #define CONFIG_BOARD_DESCRIPTION	"SBC Pro"
 #define BOARD_DEY_NAME			"ccimx8x-sbc-pro"
 
-/* ENET Config */
-#define FEC_QUIRK_ENET_MAC
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_ENET_DEV             0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE                    0x5B040000
-#define CONFIG_ETHPRIME                 "eth0"
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE                    0x5B050000
-#define CONFIG_ETHPRIME                 "eth1"
-#endif
-
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
-
-/* Fastboot */
-#define PRODUCT_NAME			"ccimx8xsbcpro"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 /* Carrier board version in environment */
 #define CONFIG_HAS_CARRIERBOARD_VERSION

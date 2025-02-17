@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 
+#include <asm/arch/sys_proto.h>
 #include <imx_container.h>
 #include <linux/types.h>
 #include <mmc.h>
@@ -14,36 +15,46 @@
 extern int mmc_get_bootdevindex(void);
 
 /*
- * Get next AHAB container address after 'addr'
+ * Get next AHAB container address after the given 'addr'.
+ *
+ * Return AHAB container address on success or 0 on failure
  */
 static ulong get_next_container_addr(ulong addr)
 {
 	struct container_hdr *phdr;
 	struct boot_img_t *img_entry;
 
+	if (!addr) {
+		printf("Error: Invalid container address (NULL).\n");
+		return 0;
+	}
+
 	phdr = (struct container_hdr *)(addr);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong base container header\n", __func__);
-		return -1;
+		return 0;
 	}
 
 	img_entry = (struct boot_img_t *)(addr + sizeof(struct container_hdr));
 	img_entry += (phdr->num_images - 1);
 	phdr =
-	    (struct container_hdr *)ROUND(addr + img_entry->offset +
-					  img_entry->size, SZ_1K);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	    (struct container_hdr *)(addr + ROUND(img_entry->offset +
+						  img_entry->size,
+						  CONTAINER_HDR_ALIGNMENT));
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("%s: wrong next container header\n", __func__);
-		return -1;
+		return 0;
 	}
 
-	return (ulong) phdr;
+	return (ulong)phdr;
 }
 
 /*
- * Get blob address from AHAB container in 'addr'
+ * Get blob address from AHAB container at the given 'addr'.
+ *
+ * Return blob address on success or 0 on failure
  */
 static ulong get_blob_addr_from_container(ulong addr)
 {
@@ -51,20 +62,25 @@ static ulong get_blob_addr_from_container(ulong addr)
 	struct signature_block_hdr *sign_hdr;
 	ulong blob_addr;
 
+	if (!addr) {
+		printf("Error: Invalid container address (NULL).\n");
+		return 0;
+	}
+
 	phdr = (struct container_hdr *)(addr);
-	if (phdr->tag != AHAB_CNTR_HDR_TAG
+	if (!phdr || phdr->tag != AHAB_CNTR_HDR_TAG
 	    || phdr->version != AHAB_CNTR_HDR_VER) {
 		printf("Error: wrong container header\n");
-		return -1;
+		return 0;
 	}
 	debug("AHAB container header address = 0x%08lx\n", (ulong) phdr);
 
 	sign_hdr =
 	    (struct signature_block_hdr *)((ulong) phdr + phdr->sig_blk_offset);
-	if (sign_hdr->tag != AHAB_SIGN_HDR_TAG
+	if (!sign_hdr || sign_hdr->tag != AHAB_SIGN_HDR_TAG
 	    || sign_hdr->version != AHAB_SIGN_HDR_VER) {
 		debug("Error: wrong signature block header\n");
-		return -1;
+		return 0;
 	}
 	debug("Signature block header address = 0x%08lx\n", (ulong) sign_hdr);
 
@@ -74,14 +90,22 @@ static ulong get_blob_addr_from_container(ulong addr)
 	return blob_addr;
 }
 
-int get_dek_blob_offset(ulong addr, u32 *offset)
+/*
+ * Return the offset where the DEK blob must be placed for:
+ * - offset[0] -> SPL
+ * - offset[1] -> U-Boot
+ *
+ * DEK blobs will be placed into the Signature Blocks from
+ * the AHAB containers.
+ */
+int get_dek_blob_offset(ulong addr, ulong size, u32 *offset)
 {
 	ulong container_addr, dek_blob_addr;
 
 	debug("== Second AHAB container.\n");
 	container_addr = addr + CONTAINER_HDR_ALIGNMENT;
 	dek_blob_addr = get_blob_addr_from_container(container_addr);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		return -1;
 	}
@@ -91,12 +115,12 @@ int get_dek_blob_offset(ulong addr, u32 *offset)
 	/* Jump to third container */
 	debug("== Third AHAB container.\n");
 	container_addr = get_next_container_addr(container_addr);
-	if (container_addr < 0) {
+	if (!container_addr) {
 		printf("Failed to get third container address.\n");
 		return -1;
 	}
 	dek_blob_addr = get_blob_addr_from_container(container_addr);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		return -1;
 	}
@@ -141,6 +165,9 @@ int get_dek_blob(ulong addr, u32 *size)
 	}
 
 	offset = CONTAINER_HDR_EMMC_OFFSET;
+	/* imx8qxp B0 has a different offset */
+	if ((is_imx8qxp() || is_imx8dx()) && is_soc_rev(CHIP_REV_B))
+		offset = CONTAINER_HDR_MMCSD_OFFSET;
 	part = EXT_CSD_EXTRACT_BOOT_PART(mmc->part_config);
 	/* Fail if booting from user partition */
 	if (part == 7) {
@@ -174,7 +201,7 @@ int get_dek_blob(ulong addr, u32 *size)
 	/* Recover the DEK blob and copy to 'addr' */
 	dek_blob_addr =
 	    get_blob_addr_from_container((ulong) buf + CONTAINER_HDR_ALIGNMENT);
-	if (dek_blob_addr < 0) {
+	if (!dek_blob_addr) {
 		printf("Failed to get DEK Blob address.\n");
 		ret = -1;
 		goto sanitize;
@@ -255,4 +282,14 @@ bool is_container_encrypted(ulong addr, ulong *dek_addr)
 
 err_out:
 	return is_encrypted;
+}
+
+__weak int revoke_keys(void)
+{
+	return -1;
+}
+
+__weak int get_srk_revoke_mask(u32 *mask)
+{
+	return -1;
 }

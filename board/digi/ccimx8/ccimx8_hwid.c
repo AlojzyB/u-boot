@@ -483,7 +483,7 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 		/* capabilties fields */
 		else if (capabilities &&
 			 !strcmp("digi,hwid,ram_mb", propnames[i]))
-			sprintf(str, "%llu", ram_sizes_mb[hwid->ram]);
+			sprintf(str, "%llu", hwid_get_ramsize(hwid)/SZ_1M);
 		else if (capabilities &&
 			 (((!strcmp("digi,hwid,has-mca", propnames[i]) &&
 			   hwid->mca) ||
@@ -510,5 +510,14 @@ void fdt_fixup_hwid(void *fdt, const struct digi_hwid *hwid)
 
 u64 hwid_get_ramsize(const struct digi_hwid *hwid)
 {
+#ifdef CONFIG_CC8X
+	/*
+	 * A batch of variant -13 modules was wrongly programmed
+	 * with 1GB RAM size. Correct that particular case by
+	 * establishing a 4GB RAM size.
+	 */
+	if ((hwid->variant == 13) && (ram_sizes_mb[hwid->ram] == 1024))
+		return SZ_4G;
+#endif
 	return ram_sizes_mb[hwid->ram] * SZ_1M;
 }

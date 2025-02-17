@@ -193,17 +193,26 @@ download_firmware_imx()
 
 download_firmware_ele()
 {
-	[ -d "${FIRMWARE_ELE_DIR}" ] && { echo "- Sentinel firmware already downloaded"; return 0; }
+	[ -d "${FIRMWARE_ELE_DIR}" ] && { echo "- ELE firmware already downloaded"; return 0; }
 
 	(
 		cd "${BASEDIR}" || { echo "download_firmware_ele: BASEDIR not found"; exit 1; }
 		if [ ! -f "${FIRMWARE_ELE}.bin" ]; then
 			if ! wget "${FIRMWARE_ELE_URL}"; then
-				echo "- Unable to download Sentinel firmware from ${FIRMWARE_ELE_URL}"
+				echo "- Unable to download ELE firmware from ${FIRMWARE_ELE_URL}"
 				exit 1
 			fi
 		fi
 		sh "${FIRMWARE_ELE}.bin" --auto-accept --force
+
+		# Download and unpack firmware for SOC revision A0
+		if [ ! -f "${FIRMWARE_ELE_A0}.bin" ]; then
+			if ! wget "${FIRMWARE_ELE_URL_A0}"; then
+				echo "- Unable to download Sentinel firmware from ${FIRMWARE_ELE_URL_A0}"
+				exit 1
+			fi
+		fi
+		sh "${FIRMWARE_ELE_A0}.bin" --auto-accept --force
 	)
 }
 
@@ -231,7 +240,8 @@ copy_artifacts_mkimage_folder()
 	)
 
 	# AHAB container
-	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx93??-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
+	cp --remove-destination "${FIRMWARE_ELE_DIR}"/mx93a1-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
+	cp --remove-destination "${FIRMWARE_ELE_DIR_A0}"/mx93a0-ahab-container.img "${MKIMAGE_DIR}"/"${SOC}"
 
 	# ATF
 	cp --remove-destination "${ATF_DIR}"/build/"${ATF_PLAT}"/release/bl31.bin "${MKIMAGE_DIR}"/"${SOC}"/bl31-imx93.bin
@@ -278,22 +288,54 @@ build_imxboot()
 	)
 }
 
+sign_imxboot()
+{
+	if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
+		return
+	fi
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${SRK_REVOKE_MASK}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} SRK_REVOKE_MASK=${SRK_REVOKE_MASK}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+
+		for rev in A0 A1; do
+			echo "- Sign and encrypt imx-boot (NO-OPTEE) binary for: ${SOC} (${rev})"
+			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx93-dvk-${rev}-nooptee-flash_singleboot.log"
+			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}-nooptee.bin imx-boot-signed-ccimx93-dvk-${rev}-nooptee.bin
+			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}-nooptee.bin imx-boot-encrypted-ccimx93-dvk-${rev}-nooptee.bin
+
+			echo "- Sign and encrypt imx-boot (OPTEE) binary for: ${SOC} (${rev})"
+			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx93-dvk-${rev}-flash_singleboot.log"
+			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-signed-ccimx93-dvk-${rev}.bin
+			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx93-dvk-${rev}.bin imx-boot-encrypted-ccimx93-dvk-${rev}.bin
+		done
+	)
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.55_2.2.0"
-# Tag: lf-6.1.55-2.2.0
-MKIMAGE_REV="c4365450fb115d87f245df2864fee1604d97c06a"
+MKIMAGE_BRANCH="lf-6.6.52_2.2.0"
+# Tag: lf-6.6.52-2.2.0
+MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
-	mkimage/0001-imx9-soc.mak-capture-commands-output-into-a-log-file.patch \
+	mkimage/0001-imx93-soc.mak-capture-commands-output-into-a-log-fil.patch \
+	mkimage/0002-imx93-soc.mak-add-makefile-target-to-build-A0-revisi.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.55-2.2.0
-ATF_REV="08e9d4eef2262c0dd072b4325e8919e06d349e02"
+ATF_BRANCH="lf_v2.10"
+# Tag: lf-6.6.52-2.2.0
+ATF_REV="1b27ee3edbb40ef9432c69ccaa744d1ac5d54c5d"
 ATF_DIR="${BASEDIR}/imx-atf"
 ATF_PATCHES=" \
 	atf/0001-ccimx93-use-UART6-for-the-default-console.patch
@@ -301,29 +343,35 @@ ATF_PATCHES=" \
 "
 
 OPTEE_REPO="https://github.com/nxp-imx/imx-optee-os.git"
-OPTEE_BRANCH="lf-6.1.55_2.2.0"
-# Tag: lf-6.1.55-2.2.0
-OPTEE_REV="a303fc80f7c4bd713315687a1fa1d6ed136e78ee"
+OPTEE_BRANCH="lf-6.6.52_2.2.0"
+# Tag: lf-6.6.52-2.2.0
+OPTEE_REV="60beb308810f9561a67fdb435388a64c85eb6dcb"
 OPTEE_DIR="${BASEDIR}/imx-optee-os"
 OPTEE_PATCHES=" \
-	optee/0007-allow-setting-sysroot-for-clang.patch \
 	optee/0001-core-imx-support-ccimx93-dvk.patch \
 	optee/0002-core-ccimx93-enable-AES_HUK-trusted-application.patch \
 "
 
-FIRMWARE_IMX="firmware-imx-8.22"
+FIRMWARE_IMX="firmware-imx-8.26-d4c33ab"
 FIRMWARE_IMX_DIR="${BASEDIR}/${FIRMWARE_IMX}"
 FIRMWARE_IMX_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_IMX}.bin"
 
-FIRMWARE_ELE="firmware-ele-imx-0.1.0"
+FIRMWARE_ELE="firmware-ele-imx-1.3.0-17945fc"
 FIRMWARE_ELE_DIR="${BASEDIR}/${FIRMWARE_ELE}"
 FIRMWARE_ELE_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE}.bin"
 
-SOC="iMX9"
+# Old ELE firmware for SOC revision A0 (discontinued)
+FIRMWARE_ELE_A0="firmware-ele-imx-0.1.0"
+FIRMWARE_ELE_DIR_A0="${BASEDIR}/${FIRMWARE_ELE_A0}"
+FIRMWARE_ELE_URL_A0="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${FIRMWARE_ELE_A0}.bin"
+
+SOC="iMX93"
 ATF_PLAT="imx93"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_ahab.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -331,7 +379,6 @@ while [ "${1}" != "" ]; do
 		-h|--help) usage; exit 0;;
 		*) echo "[ERROR] Unknown option"; usage; exit 1;;
 	esac
-	shift
 done
 
 CPUS="$(echo /sys/devices/system/cpu/cpu[0-9]* | wc -w)"
@@ -351,3 +398,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot

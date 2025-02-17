@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 by Digi International Inc.
+ *  Copyright (C) 2020-2025, Digi International Inc.
  *  All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -7,8 +7,8 @@
  *  the Free Software Foundation.
 */
 
-#ifndef __AUTH_H
-#define __AUTH_H
+#ifndef TF_AUTH_H
+#define TF_AUTH_H
 
 #if defined(CONFIG_AUTH_DISCRETE_ARTIFACTS)
 int digi_auth_image(ulong *ddr_start, ulong raw_image_size);
@@ -16,4 +16,4 @@ int digi_auth_image(ulong *ddr_start, ulong raw_image_size);
 int digi_auth_image(ulong addr);
 #endif
 
-#endif  /* __AUTH_H */
+#endif  /* TF_AUTH_H */

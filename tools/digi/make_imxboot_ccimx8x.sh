@@ -174,35 +174,62 @@ build_imxboot()
 			echo "- Build imx-boot binary for: ${SOC} (${rev})"
 			${MAKE} SOC="${SOC}" REV="${rev}" clean
 			${MAKE} SOC="${SOC}" REV="${rev}" flash_spl
-			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8x-sbc-pro-${rev}.bin
-			cp --remove-destination "${SOC}"/mkimage-flash_spl.log "${OUTPUT_PATH}"/mkimage-ccimx8x-sbc-pro-${rev}-flash_spl.log
+			cp --remove-destination "${SOC}"/flash.bin "${OUTPUT_PATH}"/imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin
+			cp --remove-destination "${SOC}"/mkimage-flash_spl.log "${OUTPUT_PATH}"/mkimage-ccimx8x-sbc-${SBC}-${rev}-flash_spl.log
 		done
 	)
 }
 
+sign_imxboot()
+{
+	if [ -z "${CONFIG_SIGN_KEYS_PATH}" ]; then
+		return
+	fi
+
+	# Signing environment
+	TF_SIGN_BASE_ENV="CONFIG_SIGN_KEYS_PATH=${CONFIG_SIGN_KEYS_PATH}"
+	[ -n "${CONFIG_KEY_INDEX}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} CONFIG_KEY_INDEX=${CONFIG_KEY_INDEX}"
+	[ -n "${SRK_REVOKE_MASK}" ] && TF_SIGN_BASE_ENV="${TF_SIGN_BASE_ENV} SRK_REVOKE_MASK=${SRK_REVOKE_MASK}"
+
+	# Encryption environment
+	TF_ENC_ENV="CONFIG_DEK_PATH=${CONFIG_SIGN_KEYS_PATH}/dek.bin ENABLE_ENCRYPTION=y"
+
+	(
+		cd "${OUTPUT_PATH}" || exit 1
+		for rev in B0 C0; do
+			echo "- Sign and encrypt imx-boot binary for: ${SOC} (${rev})"
+			TF_SIGN_ENV="${TF_SIGN_BASE_ENV} CONFIG_MKIMAGE_LOG_PATH=mkimage-ccimx8x-sbc-${SBC}-${rev}-flash_spl.log"
+			env ${TF_SIGN_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-signed-ccimx8x-sbc-${SBC}-${rev}.bin
+			env ${TF_SIGN_ENV} ${TF_ENC_ENV} "${SIGN_SCRIPT}" imx-boot-ccimx8x-sbc-${SBC}-${rev}.bin imx-boot-encrypted-ccimx8x-sbc-${SBC}-${rev}.bin
+		done
+	)
+
+}
+
 ##### Main
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPTNAME="$(basename "${0}")"
 
 MKIMAGE_REPO="https://github.com/nxp-imx/imx-mkimage.git"
-MKIMAGE_BRANCH="lf-6.1.55_2.2.0"
-# Tag: lf-6.1.55-2.2.0
-MKIMAGE_REV="c4365450fb115d87f245df2864fee1604d97c06a"
+MKIMAGE_BRANCH="lf-6.6.52_2.2.0"
+# Tag: lf-6.6.52-2.2.0
+MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
 MKIMAGE_DIR="${BASEDIR}/imx-mkimage"
 MKIMAGE_PATCHES=" \
 	mkimage/0001-iMX8QX-soc.mak-capture-commands-output-into-a-log-fi.patch \
 "
 
 ATF_REPO="https://github.com/nxp-imx/imx-atf.git"
-ATF_BRANCH="lf_v2.8"
-# Tag: lf-6.1.55-2.2.0
-ATF_REV="08e9d4eef2262c0dd072b4325e8919e06d349e02"
+ATF_BRANCH="lf_v2.10"
+# Tag: lf-6.6.52-2.2.0
+ATF_REV="1b27ee3edbb40ef9432c69ccaa744d1ac5d54c5d"
 ATF_DIR="${BASEDIR}/imx-atf"
 
-DIGI_SC_FW="digi-sc-firmware-1.15.0.1"
+DIGI_SC_FW="digi-sc-firmware-1.17.0.2"
 DIGI_SC_FW_DIR="${BASEDIR}/${DIGI_SC_FW}"
 DIGI_SC_FW_URL="https://ftp1.digi.com/support/digiembeddedyocto/source/${DIGI_SC_FW}.tar.gz"
 
-IMX_SECO="imx-seco-5.9.2"
+IMX_SECO="imx-seco-5.9.4.1-0333596"
 IMX_SECO_DIR="${BASEDIR}/${IMX_SECO}"
 IMX_SECO_URL="https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/${IMX_SECO}.bin"
 
@@ -211,6 +238,10 @@ ATF_PLAT="imx8qx"
 
 OUTPUT_PATH="${BASEDIR}/output"
 UBOOT_DIR="${UBOOT_DIR:-$(realpath "${BASEDIR}"/../..)}"
+SBC="pro"
+echo "${SCRIPTNAME}" | grep -qs express && SBC="express"
+
+SIGN_SCRIPT="${UBOOT_DIR}/scripts/sign_spl_ahab.sh"
 
 # Parse command line arguments
 while [ "${1}" != "" ]; do
@@ -235,3 +266,4 @@ clone_mkimage_repo
 patch_mkimage_repo
 copy_artifacts_mkimage_folder
 build_imxboot
+sign_imxboot

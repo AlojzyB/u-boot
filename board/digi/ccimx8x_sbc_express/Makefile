@@ -5,8 +5,13 @@
 
 obj-y += ccimx8x_sbc_express.o
 obj-y += ../ccimx8x/ccimx8x.o \
-	 ../ccimx8/ccimx8.o \
-	 ../common/trustfence/ahab.o
+	 ../ccimx8/ccimx8.o
 ifdef CONFIG_HAS_HWID
 obj-y += ../ccimx8/ccimx8_hwid.o
+endif
+
+ifdef CONFIG_SPL_BUILD
+obj-y += ../ccimx8x/spl.o
+else
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx8x/ccimx8x_trustfence.o
 endif

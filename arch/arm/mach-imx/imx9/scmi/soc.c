@@ -47,6 +47,7 @@
 #endif
 #include <spl.h>
 #include <mmc.h>
+#include <kaslr.h>
 
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -253,29 +254,15 @@ static void disable_wdog(void __iomem *wdog_base)
 
 static struct mm_region imx9_mem_map[] = {
 	{
-		/* ROM */
-		.virt = 0x0UL,
-		.phys = 0x0UL,
-		.size = 0x100000UL,
-		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_OUTER_SHARE
-	}, {
-		/* TCM */
-		.virt = 0x201c0000UL,
-		.phys = 0x201c0000UL,
+		/* M7 TCM */
+		.virt = 0x203c0000UL,
+		.phys = 0x203c0000UL,
 		.size = 0x80000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
-       }, {
-               /* M7 TCM */
-               .virt = 0x203c0000UL,
-               .phys = 0x203c0000UL,
-               .size = 0x80000UL,
-               .attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
-                        PTE_BLOCK_NON_SHARE |
-                        PTE_BLOCK_PXN | PTE_BLOCK_UXN
-	}, {
+	},
+	{
 		/* OCRAM */
 		.virt = 0x20480000UL,
 		.phys = 0x20480000UL,
@@ -743,8 +730,18 @@ void build_info(void)
 {
 	u32 fw_version, sha1, res = 0, status;
 	int ret;
+	struct scmi_imx_misc_build_info_out out = { 0 };
+	struct scmi_msg msg = SCMI_MSG(SCMI_IMX_PROTOCOL_ID_MISC,
+				       SCMI_IMX_MISC_BUILD_INFO, out);
 
 	printf("\nBuildInfo:\n");
+
+	ret = devm_scmi_process_msg(gd->arch.scmi_dev, &msg);
+	if (ret || out.status)
+		printf("%s:%d:%d fail to get build info\n", __func__, ret, out.status);
+	else
+		printf("  - SM firmware Build %u, Commit %8x, %s %s\n", out.buildnum,
+		       out.buildcommit, out.builddate, out.buildtime);
 
 	ret = ele_get_fw_status(&status, &res);
 	if (ret) {
@@ -756,8 +753,8 @@ void build_info(void)
 		} else {
 			printf("  - ELE firmware version %u.%u.%u-%x",
 			       (fw_version & (0x00ff0000)) >> 16,
-			       (fw_version & (0x0000ff00)) >> 8,
-			       (fw_version & (0x000000ff)), sha1);
+			       (fw_version & (0x0000fff0)) >> 4,
+			       (fw_version & (0x0000000f)), sha1);
 			((fw_version & (0x80000000)) >> 31) == 1 ? puts("-dirty\n") : puts("\n");
 		}
 	} else {
@@ -843,6 +840,7 @@ static bool is_m7_off(void)
 int ft_system_setup(void *blob, struct bd_info *bd)
 {
 	u32 val;
+	int ret = 0;
 
 	if (is_imx95()) {
 		val = BIT(6) | BIT(7); /* In case fuse read failure, disable PCIE */
@@ -859,14 +857,22 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 		disable_m7_node(blob);
 	}
 
+	if (IS_ENABLED(CONFIG_KASLR)) {
+		ret = do_generate_kaslr(blob);
+		if (ret)
+			printf("Unable to set property %s, err=%s\n",
+				"kaslr-seed", fdt_strerror(ret));
+	}
+
 	return ft_add_optee_node(blob, bd);
 }
 
 #if defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
 void get_board_serial(struct tag_serialnr *serialnr)
 {
-	printf("UID: 0x%x 0x%x 0x%x 0x%x\n",
-	       gd->arch.uid[0], gd->arch.uid[1], gd->arch.uid[2], gd->arch.uid[3]);
+	printf("UID: %08x%08x%08x%08x\n", __be32_to_cpu(gd->arch.uid[0]),
+	       __be32_to_cpu(gd->arch.uid[1]), __be32_to_cpu(gd->arch.uid[2]),
+	       __be32_to_cpu(gd->arch.uid[3]));
 
 	serialnr->low = __be32_to_cpu(gd->arch.uid[1]);
 	serialnr->high = __be32_to_cpu(gd->arch.uid[0]);

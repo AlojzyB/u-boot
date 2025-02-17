@@ -49,10 +49,6 @@ struct load_fw {
 	char ubivolname[30];
 };
 
-#define SW_RNG_TEST_FAILED 	1
-#define SW_RNG_TEST_PASSED 	2
-#define SW_RNG_TEST_NA 		3
-
 #define UBIFS_MAGIC		0x06101831
 #define SQUASHFS_MAGIC		0x73717368
 
@@ -78,7 +74,6 @@ void verify_mac_address(char *var, char *default_mac);
 u64 memsize_parse(const char *const ptr, const char **retptr);
 void set_verifyaddr(unsigned long loadaddr);
 bool validate_bootloader_image(void *loadaddr);
-int hab_event_warning_check(uint8_t *event, size_t *bytes);
 #ifdef CONFIG_AUTHENTICATE_SQUASHFS_ROOTFS
 int read_squashfs_rootfs(unsigned long addr, unsigned long *size);
 #endif

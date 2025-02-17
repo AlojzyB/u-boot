@@ -109,20 +109,6 @@ int ahab_verify_cntr_image(struct boot_img_t *img, int image_index)
 	return ret;
 }
 
-bool imx_hab_is_enabled(void)
-{
-	sc_err_t err;
-	uint16_t lc;
-
-	err = sc_seco_chip_info(-1, &lc, NULL, NULL, NULL);
-	if (err != SC_ERR_NONE) {
-		printf("Error in get lifecycle\n");
-		return true;
-	}
-
-	return ((lc & 0x80) == 0x80);
-}
-
 static inline bool check_in_dram(ulong addr)
 {
 	int i;

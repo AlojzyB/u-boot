@@ -12,6 +12,7 @@ endif
 ifndef CONFIG_SPL_BUILD
 obj-y += ../ccimx8m/ccimx8m.o \
 	 ../ccimx8/ccimx8.o
+obj-$(CONFIG_HAS_TRUSTFENCE) += ../ccimx8m/ccimx8m_trustfence.o
 else
 obj-y += ../ccimx8m/spl.o
 obj-$(CONFIG_IMX8M_LPDDR4) += ../ccimx8m/ccimx8mn_lpddr4_timing.o

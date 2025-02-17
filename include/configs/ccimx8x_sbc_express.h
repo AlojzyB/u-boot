@@ -13,31 +13,10 @@
 #define CONFIG_BOARD_DESCRIPTION	"SBC Express"
 #define BOARD_DEY_NAME			"ccimx8x-sbc-express"
 
-#define CONFIG_REMAKE_ELF
-
-/* GPIO configs */
-#define CONFIG_MXC_GPIO
-
-/* ENET Config */
-#define FEC_QUIRK_ENET_MAC
-#define CONFIG_RESET_PHY_R
-#define CONFIG_PHY_SMSC
-
-#define CONFIG_FEC_ENET_DEV 0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			0x5B040000
-#define CONFIG_ETHPRIME                 "FEC0"
-#define CONFIG_FEC_XCV_TYPE             RMII
-#endif
-
 /* Serial */
 #define CONSOLE_DEV			"ttyLP2"
 #define EARLY_CONSOLE			"lpuart32,0x5a080000"
 #define CONFIG_BAUDRATE			115200
-
-/* Fastboot */
-#define CONFIG_SERIAL_TAG
-#define PRODUCT_NAME			"ccimx8xsbcexpress"  /* (== TARGET_BOOTLOADER_BOARD_NAME in Android) */
 
 /* USB Config */
 #ifdef CONFIG_CMD_USB
@@ -45,8 +24,6 @@
 
 /* USB OTG controller configs */
 #ifdef CONFIG_USB_EHCI_HCD
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
 #endif
 #endif /* CONFIG_CMD_USB */
@@ -59,14 +36,14 @@
 #define CONFIG_HAS_CARRIERBOARD_VERSION
 #define CONFIG_HAS_CARRIERBOARD_ID
 
-#define CONFIG_MFG_ENV_SETTINGS \
+#define CFG_MFG_ENV_SETTINGS \
 	"fastboot_dev=mmc" __stringify(EMMC_BOOT_DEV) "\0" \
 	"emmc_dev=" __stringify(EMMC_BOOT_DEV) "\0" \
 	"sd_dev=1\0"
 
 /* Initial environment variables */
-#define CONFIG_EXTRA_ENV_SETTINGS		\
-	CONFIG_MFG_ENV_SETTINGS			\
+#define CFG_EXTRA_ENV_SETTINGS		\
+	CFG_MFG_ENV_SETTINGS			\
 	CONFIG_DEFAULT_NETWORK_SETTINGS		\
 	CONFIG_EXTRA_NETWORK_SETTINGS		\
 	RANDOM_UUIDS \
