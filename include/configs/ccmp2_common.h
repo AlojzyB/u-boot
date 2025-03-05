@@ -67,18 +67,18 @@
 	BOOT_TARGET_PXE(func)
 
 /*
- * memory layout for 64M uncompressed/compressed kernel,
+ * memory layout for 96MB uncompressed/compressed kernel,
  * 1M fdt, 1M script, 1M pxe and 1M for overlay
  * and the ramdisk at the end.
  */
 #define __KERNEL_COMP_ADDR_R	__stringify(0x84000000)
 #define __KERNEL_COMP_SIZE_R	__stringify(0x04000000)
-#define __KERNEL_ADDR_R		__stringify(0x88000000)
-#define __FDT_ADDR_R		__stringify(0x8c000000)
-#define __SCRIPT_ADDR_R		__stringify(0x8c100000)
-#define __PXEFILE_ADDR_R	__stringify(0x8c200000)
-#define __FDTOVERLAY_ADDR_R	__stringify(0x8c300000)
-#define __RAMDISK_ADDR_R	__stringify(0x8c400000)
+#define __KERNEL_ADDR_R		__stringify(0x8a000000)
+#define __FDT_ADDR_R		__stringify(0x90000000)
+#define __SCRIPT_ADDR_R		__stringify(0x90100000)
+#define __PXEFILE_ADDR_R	__stringify(0x90200000)
+#define __FDTOVERLAY_ADDR_R	__stringify(0x90300000)
+#define __RAMDISK_ADDR_R	__stringify(0x90400000)
 
 #define STM32MP_MEM_LAYOUT \
 	"kernel_addr_r=" __KERNEL_ADDR_R "\0" \
