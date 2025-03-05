@@ -171,32 +171,32 @@
 					"ubi create " RECOVERY_PARTITION " 1400000;" \
 					"ubi create " ROOTFS_PARTITION " 8C00000;" \
 					"ubi create " UPDATE_PARTITION " 4600000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_512MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 10000000;" \
 					"ubi create " UPDATE_PARTITION " B900000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_1024MB			"ubi create " LINUX_PARTITION " 1800000;" \
 					"ubi create " RECOVERY_PARTITION " 2000000;" \
 					"ubi create " ROOTFS_PARTITION " 20000000;" \
 					"ubi create " UPDATE_PARTITION " 1B800000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_256MB		"ubi create " LINUX_A_PARTITION " c00000;" \
 					"ubi create " LINUX_B_PARTITION " c00000;" \
 					"ubi create " ROOTFS_A_PARTITION " 7100000;" \
 					"ubi create " ROOTFS_B_PARTITION " 7100000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_512MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
 					"ubi create " ROOTFS_A_PARTITION " e600000;" \
 					"ubi create " ROOTFS_B_PARTITION " e600000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define UBIVOLS_DUALBOOT_1024MB		"ubi create " LINUX_A_PARTITION " 4000000;" \
 					"ubi create " LINUX_B_PARTITION " 4000000;" \
 					"ubi create " ROOTFS_A_PARTITION " 10000000;" \
 					"ubi create " ROOTFS_B_PARTITION " 10000000;" \
-					"ubi create " DATA_PARTITION
+					"ubi create " DATA_PARTITION ";"
 #define CREATE_UBIVOLS_SCRIPT		"if test \"${singlemtdsys}\" = yes; then " \
 						"nand erase.part " SYSTEM_PARTITION ";" \
 						"if test $? = 1; then " \
